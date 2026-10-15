@@ -103,7 +103,7 @@ function forcing(fen, uci) {
 
 async function base(p) {
   const g = p.game;
-  return { id: await itemId(p.fen, p.uci), fen: p.fen, color: g.color, from: p.move.from, to: p.move.to,
+  return { id: await itemId(p.fen, p.uci), fen: p.fen, before_fen: p.fenBefore, color: g.color, from: p.move.from, to: p.move.to,
            san: p.san, move: p.moveNumber, opp: g.opponent, date: g.date, result: g.result,
            evb: pawns(p.before), eva: pawns(p.after), ...(g.link ? { link: g.link } : {}) };
 }

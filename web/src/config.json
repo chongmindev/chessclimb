@@ -25,6 +25,9 @@
     "screen_depth": 10,
     "screen_margin": 100
   },
+  "trainer": {
+    "fix_tolerance": 100
+  },
   "fetch": {
     "base_url": "https://api.chess.com/pub",
     "min_interval": 1.0,

@@ -87,11 +87,11 @@
           </div>
           <div class="form-row tc" style="margin-top:14px">
             <fieldset class="toggles">
-              <legend class="visually-hidden">Time controls</legend>
-              <label class="toggle"><input type="checkbox" name="tc" value="rapid" checked><span>Rapid</span></label>
-              <label class="toggle"><input type="checkbox" name="tc" value="blitz"><span>Blitz</span></label>
-              <label class="toggle"><input type="checkbox" name="tc" value="bullet"><span>Bullet</span></label>
-              <label class="toggle"><input type="checkbox" name="tc" value="daily"><span>Daily</span></label>
+              <legend class="label">Time controls · pick any</legend>
+              <label class="toggle"><input type="checkbox" name="tc" value="rapid" checked><span><i class="tick" aria-hidden="true"></i>Rapid</span></label>
+              <label class="toggle"><input type="checkbox" name="tc" value="blitz"><span><i class="tick" aria-hidden="true"></i>Blitz</span></label>
+              <label class="toggle"><input type="checkbox" name="tc" value="bullet"><span><i class="tick" aria-hidden="true"></i>Bullet</span></label>
+              <label class="toggle"><input type="checkbox" name="tc" value="daily"><span><i class="tick" aria-hidden="true"></i>Daily</span></label>
             </fieldset>
             <button class="btn primary" type="submit">Scan games<svg class="icon"><use href="#i-next"/></svg></button>
           </div>
@@ -125,7 +125,7 @@
       <section class="drill" aria-label="Position">
         <div class="meta" id="meta"></div>
         <div class="played">
-          <span class="label">You played</span>
+          <span class="label" id="played-label">You played</span>
           <span class="played-move" id="played"></span>
         </div>
         <p class="question" id="question"></p>
@@ -141,8 +141,17 @@
           <span class="label">Answer</span>
           <span class="hint-move">Move their piece on the board</span>
           <span class="or">or</span>
-          <button class="btn" id="btn-safe" type="button"><span id="btn-safe-label">Nothing works</span></button>
+          <button class="btn" id="btn-safe" type="button">Nothing works</button>
+          <button class="btn ghost reveal" id="btn-reveal" type="button" hidden>Reveal</button>
         </div>
+
+        <div class="answer" id="fix-row" hidden>
+          <span class="label">Fix</span>
+          <span class="hint-move">Move your piece on the board</span>
+          <button class="btn ghost reveal" id="btn-show" type="button" hidden>Show me</button>
+        </div>
+
+        <p class="note" id="note" role="status" hidden></p>
 
         <div id="feedback"></div>
         <div class="btns"><button class="btn primary" id="btn-next" type="button" hidden>Next<svg class="icon"><use href="#i-next"/></svg></button></div>

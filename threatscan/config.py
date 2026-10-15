@@ -39,6 +39,11 @@ class ScanConfig:
 
 
 @dataclass(frozen=True)
+class TrainerConfig:
+    fix_tolerance: int
+
+
+@dataclass(frozen=True)
 class ReportConfig:
     depth: int
     error_loss: int
@@ -81,6 +86,7 @@ class Config:
     engine: EngineConfig
     fetch: FetchConfig
     scan: ScanConfig
+    trainer: TrainerConfig
     report: ReportConfig
     summary: SummaryConfig
     drills: DrillConfig
@@ -106,6 +112,7 @@ def load(path: str | Path | None = None) -> Config:
         engine=_build(EngineConfig, engine, "engine"),
         fetch=_build(FetchConfig, {**raw["fetch"], "time_classes": tuple(raw["fetch"]["time_classes"])}, "fetch"),
         scan=_build(ScanConfig, raw["scan"], "scan"),
+        trainer=_build(TrainerConfig, raw["trainer"], "trainer"),
         report=_build(ReportConfig, raw["report"], "report"),
         summary=_build(SummaryConfig, raw["summary"], "summary"),
         drills=_build(DrillConfig, raw["drills"], "drills"),

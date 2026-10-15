@@ -10,8 +10,11 @@ export function gameKey(game) {
 
 /** A fingerprint of the drill rules: change a threshold and old candidates are recomputed. */
 export function rulesVersion(cfg) {
-  return JSON.stringify(cfg.drills);
+  return JSON.stringify({ items: ITEM_SCHEMA, drills: cfg.drills });
 }
+
+/** Bump when items gain or change fields, so cached candidates are rebuilt (2: before_fen). */
+const ITEM_SCHEMA = 2;
 
 /**
  * Two phases, both newest game first:

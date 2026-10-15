@@ -25,6 +25,11 @@ time_classes = ["rapid"]  # bullet, blitz, rapid, daily; empty list = all
 screen_depth = 10
 screen_margin = 100
 
+[trainer]
+# Browser only. In the "fix it" step a move counts as fixing the blunder if the engine's eval after it
+# is at most fix_tolerance below the eval before the blunder (the best you could have done).
+fix_tolerance = 100
+
 [report]
 depth = 14
 error_loss = 100          # a move losing this much is listed as an error

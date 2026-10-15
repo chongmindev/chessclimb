@@ -17,7 +17,7 @@ body::before { background-image: repeating-linear-gradient(0deg, transparent 0 1
 body::after { opacity: 0.02; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 
 a { color: inherit; text-decoration: none; border-bottom: var(--thin); }
-a:hover { border-bottom-width: 2px; }
+a:hover { border-bottom-color: var(--accent); }
 :focus-visible { outline: 3px solid var(--black); outline-offset: 3px; }
 .icon { width: 20px; height: 20px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: square; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -46,13 +46,14 @@ a:hover { border-bottom-width: 2px; }
 
 .main { display: grid; gap: var(--gap); padding: var(--pad); min-height: 0; grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 1024px) {
-  .main { grid-template-columns: auto minmax(360px, 1fr); max-width: 1440px; width: 100%; margin: 0 auto; }
+  .main { grid-template-columns: auto minmax(360px, 1fr); max-width: 1280px; width: 100%; margin: 0 auto; }
 }
 
 /* ---------- Left: the stage (hero type, then the board) ---------- */
 .stage { position: relative; width: 100%; aspect-ratio: 1; }
 @media (min-width: 1024px) {
-  .stage { width: auto; height: 100%; max-height: calc(100dvh - var(--bar) - 2 * var(--pad)); max-width: 58vw; }
+  /* About 90% of the available height, so the page breathes; centered against the panel. */
+  .stage { width: auto; height: 90%; align-self: center; max-height: calc(0.9 * (100dvh - var(--bar) - 2 * var(--pad))); max-width: 52vw; }
 }
 .hero { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 0 0 8px; }
 .hero h1 { margin: 12px 0 0; font: 700 clamp(3rem, min(8vw, 11vh), 8rem)/0.92 var(--f-display); letter-spacing: var(--track-tighter); }
@@ -69,11 +70,14 @@ a:hover { border-bottom-width: 2px; }
 .sq { position: relative; display: flex; align-items: center; justify-content: center; border: 0; padding: 0; margin: 0; cursor: pointer; font: inherit; background: var(--accent-wash); }
 .sq.d { background: var(--accent-soft); }
 .sq:focus-visible { outline: 3px solid var(--black); outline-offset: -3px; z-index: 2; }
-.sq .lm { position: absolute; inset: 0; background: var(--accent-mid); opacity: 0.55; pointer-events: none; }
+/* Last move: an accent frame, no fill, so it reads on light and dark squares alike. */
+.sq .lm { position: absolute; inset: 0; box-shadow: inset 0 0 0 3px var(--accent); pointer-events: none; }
 .sq.sel { box-shadow: inset 0 0 0 4px var(--black); }
-.sq .dot { position: absolute; width: 24%; height: 24%; background: var(--black); opacity: 0.55; pointer-events: none; }
-.sq .ring { position: absolute; inset: 6%; border: 3px solid var(--black); opacity: 0.6; pointer-events: none; }
-.sq .hintmark { position: absolute; inset: 0; box-shadow: inset 0 0 0 4px var(--accent); pointer-events: none; }
+/* Legal targets of the selected piece: a thin frame, no center dots. */
+.sq .target { position: absolute; inset: 0; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.45); pointer-events: none; }
+.sq:hover .target { box-shadow: inset 0 0 0 3px var(--black); }
+/* Checks / captures chip: a corner flag on each from- and to-square. */
+.sq .hintmark { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(135deg, var(--accent) 0 16%, transparent 16%); }
 .sq .loose { position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(-45deg, transparent 0 6px, rgba(90, 95, 214, 0.35) 6px 8px); box-shadow: inset 0 0 0 2px var(--accent); }
 .pc { position: relative; width: 88%; height: 88%; background: center / contain no-repeat; pointer-events: none; }
 .pc.wP { background-image: url("../pieces/wP.svg"); } .pc.wN { background-image: url("../pieces/wN.svg"); }
@@ -105,14 +109,30 @@ svg.arrows { position: absolute; inset: 0; width: 100%; height: 100%; pointer-ev
 .input:focus, .input:focus-visible { outline: none; border-bottom-width: 4px; padding-bottom: 2px; }
 select.input { appearance: none; cursor: pointer; padding-right: 24px;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 0 center / 18px; }
-.form-row.tc { grid-template-columns: minmax(0, 1fr) auto; }
-.toggles { border: 0; margin: 0; padding: 0; display: flex; }
-.toggle { position: relative; flex: 1; }
-.toggle + .toggle { margin-left: -1px; }
+.form-row.tc { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.form-row.tc .btn.primary { width: 100%; }
+.toggles { flex-wrap: nowrap; }
+.toggle { flex: 1; }
+.toggle span { justify-content: center; }
+/* Time controls: filter chips. Separate (not joined, which reads as pick-one) with a leading check box
+   that fills and shows a tick when on: the standard multi-select cue. */
+.toggles { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.toggles legend { padding: 0; margin-bottom: 6px; }
+.toggle { position: relative; }
 .toggle input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
-.toggle span { display: flex; align-items: center; justify-content: center; min-height: var(--touch); padding: 0 10px; border: var(--thin); font: 500 0.75rem var(--f-mono); letter-spacing: var(--track-label); text-transform: uppercase; }
-.toggle input:checked + span { background: var(--black); color: var(--white); }
-.toggle input:focus-visible + span { outline: 3px solid var(--black); outline-offset: 2px; position: relative; z-index: 1; }
+.toggle span {
+  display: flex; align-items: center; gap: 8px; min-height: var(--touch); padding: 0 14px 0 10px;
+  border: var(--thin); background: var(--white);
+  font: 500 0.75rem var(--f-mono); letter-spacing: var(--track-label); text-transform: uppercase;
+  transition: background var(--t), border-color var(--t);
+}
+.tick { width: 16px; height: 16px; border: 1.5px solid var(--black); display: grid; place-items: center; flex: none; transition: background var(--t), border-color var(--t); }
+.toggle:hover span { background: var(--accent-wash); border-color: var(--accent); }
+.toggle:hover .tick { border-color: var(--accent); }
+.toggle input:checked + span { border: var(--medium); padding-left: 9px; padding-right: 13px; }
+.toggle input:checked + span .tick { background: var(--accent); border-color: var(--accent); }
+.toggle input:checked + span .tick::after { content: ""; width: 4px; height: 8px; border: solid var(--white); border-width: 0 2px 2px 0; transform: translate(0, -1px) rotate(45deg); }
+.toggle input:focus-visible + span { outline: 3px solid var(--black); outline-offset: 2px; }
 
 /* Buttons */
 .btn {
@@ -141,12 +161,13 @@ select.input { appearance: none; cursor: pointer; padding-right: 24px;
 /* Counters: the inverted band */
 .counters {
   position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 0.7fr)) minmax(0, 1.6fr);
-  background: var(--black); color: var(--white); padding: 12px 20px; flex: none;
+  background: var(--black); color: var(--white); padding: 14px 20px; flex: none; align-items: center;
 }
 .counters::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.03;
   background-image: repeating-linear-gradient(90deg, transparent 0 1px, var(--white) 1px 2px); background-size: 4px 100%; }
+.counter { display: grid; grid-template-rows: 2rem auto; row-gap: 6px; align-content: center; }
 .counter + .counter { border-left: 1px solid rgba(255, 255, 255, 0.35); padding-left: 20px; }
-.counter b { display: block; font: 700 2rem/1 var(--f-display); font-variant-numeric: lining-nums tabular-nums; letter-spacing: var(--track-tight); }
+.counter b { display: block; height: 2rem; font: 700 2rem/1 var(--f-display); font-variant-numeric: lining-nums tabular-nums; letter-spacing: var(--track-tight); }
 .counter .label { color: rgba(255, 255, 255, 0.75); }
 
 /* Drill */
@@ -160,7 +181,9 @@ select.input { appearance: none; cursor: pointer; padding-right: 24px;
 
 /* Scan chips and the answer row: labelled rows, the label column aligned */
 .scan, .answer { display: grid; grid-template-columns: 72px repeat(3, auto) 1fr; align-items: center; gap: 8px; }
-.answer { grid-template-columns: 72px auto auto auto 1fr; }
+.answer { display: flex; flex-wrap: wrap; gap: 8px 12px; }
+.answer > .label:first-child { width: 72px; }
+.reveal { margin-left: auto; }
 .chip {
   display: inline-flex; align-items: center; gap: 8px; min-height: var(--touch); padding: 0 14px;
   border: var(--medium); background: var(--white); cursor: pointer;
@@ -185,7 +208,7 @@ select.input { appearance: none; cursor: pointer; padding-right: 24px;
 .fb h2 { margin: 0; font: italic 700 1.5rem/1.1 var(--f-display); letter-spacing: var(--track-tight); }
 .game-link { font: 500 0.75rem var(--f-mono); letter-spacing: var(--track-label); text-transform: uppercase; }
 .fb.ok .game-link { border-bottom-color: var(--white); }
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
 .card { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: var(--thin); }
 .fb.ok .card { border-color: rgba(255, 255, 255, 0.4); }
 .fb.ok .card .label { color: rgba(255, 255, 255, 0.7); }
@@ -209,12 +232,11 @@ select.input { appearance: none; cursor: pointer; padding-right: 24px;
 .evalbar .ends .arrow { color: var(--ink-muted); font-weight: 400; }
 .fb.ok .evalbar .ends .arrow { color: rgba(255, 255, 255, 0.6); }
 
-/* Review boxes, inside the inverted band: white bars, counts under them */
-.vu { display: flex; flex-direction: column; justify-content: end; gap: 4px; }
-.boxes { display: flex; gap: 6px; align-items: end; height: 46px; font: 500 0.625rem/1 var(--f-mono); color: rgba(255, 255, 255, 0.75); }
-.boxes div { display: flex; flex-direction: column; align-items: center; justify-content: end; gap: 3px; flex: 1; height: 100%; }
-.boxes i { display: block; width: 100%; min-height: 1px; max-height: 28px; background: var(--white); }
-.boxes span:last-child { display: none; }
+/* Review boxes, inside the inverted band: bars the height of the numbers; counts in the tooltip */
+.vu .boxes { display: flex; gap: 6px; align-items: end; height: 2rem; }
+.vu .boxes div { flex: 1; height: 100%; display: flex; align-items: end; }
+.vu .boxes i { display: block; width: 100%; min-height: 2px; max-height: 2rem; background: var(--white); }
+.vu .boxes span { display: none; }
 
 .foot { margin-top: auto; display: flex; flex-wrap: wrap; gap: 4px 16px; border-top: var(--hairline); padding-top: 10px; }
 .foot a { color: var(--ink-muted); border-bottom-color: var(--hairline-color); }
@@ -256,3 +278,14 @@ body[data-view="drill"] .form:not(.open) .form-summary { display: flex; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Try-again notes, the fix step, and the game link's arrow */
+.note { margin: 0; padding: 8px 12px; border-left: var(--thick); border-color: var(--accent); background: var(--accent-wash); font-size: 0.9375rem; }
+.note b { font: 600 0.9em var(--f-mono); }
+.fb.fix { margin-top: 10px; }
+.evalbar-note { margin-top: -4px; }
+.fb.ok .evalbar-note { color: rgba(255, 255, 255, 0.75); }
+.game-link { display: inline-flex; align-items: baseline; gap: 4px; border-bottom: var(--thin); }
+.game-link:hover { border-bottom-color: currentColor; }
+.game-link .arr { display: inline-block; transition: transform var(--t); }
+.game-link:hover .arr { transform: translate(3px, -3px); }

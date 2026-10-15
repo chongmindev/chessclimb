@@ -28,6 +28,7 @@ class Ply:
     best_san: str | None        # engine's choice instead of my move
     before: int
     after: int
+    fen_before: str = ""        # position before my move, me to move (for the trainer's "fix it" step)
 
     @property
     def loss(self) -> int:
@@ -45,13 +46,14 @@ def walk(game: Game, engine: Engine, depth: int, cap: int) -> Iterator[Ply]:
             before = clamp(line.pov(game.color))
             best_san = board.san(chess.Move.from_uci(line.move)) if line.move else None
             san = board.san(mv)
+            fen_before = board.fen()
         board.push(mv)
         if mine and board.is_game_over():
             return
         line = engine.analyse(board, depth)[0]
         if mine:
             yield Ply(game, i // 2 + 1, board.copy(stack=False), mv, san, best_san,
-                      before, clamp(line.pov(game.color)))
+                      before, clamp(line.pov(game.color)), fen_before)
 
 
 def is_threat_candidate(c: DrillConfig, p: Ply) -> bool:
@@ -113,7 +115,7 @@ def item_id(fen: str, move: chess.Move) -> str:
 
 
 def _base(p: Ply) -> dict:
-    return {"id": item_id(p.board.fen(), p.move), "fen": p.board.fen(),
+    return {"id": item_id(p.board.fen(), p.move), "fen": p.board.fen(), "before_fen": p.fen_before,
             "color": "w" if p.game.color == chess.WHITE else "b",
             "from": chess.square_name(p.move.from_square), "to": chess.square_name(p.move.to_square),
             "san": p.san, "move": p.move_number, "opp": p.game.opponent, "date": p.game.date,

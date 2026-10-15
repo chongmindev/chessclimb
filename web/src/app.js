@@ -81,6 +81,8 @@ async function start(store, trainer, username, rangeValue, timeClasses) {
   }
   // The Lichess cloud is off: measured slower than local engines (docs/decisions.md). Pass a LichessCloud to enable.
   const evaluator = new Evaluator({ store, pool, cloud: null });
+  // The fix step asks the same engines (and cache) whether a move holds.
+  trainer.evaluate = async (fen) => (await evaluator.forGame()(fen, cfg.drills.depth, 1))[0];
   const key = `progress|${username.toLowerCase()}`;
   trainer.load = () => store.get(key);
   trainer.save = (p) => store.set(key, p);
@@ -107,11 +109,12 @@ async function start(store, trainer, username, rangeValue, timeClasses) {
 async function main() {
   const store = await openStore();
   const trainer = new Trainer({
-    board: $("board"), arrows: $("arrows"), meta: $("meta"), played: $("played"), question: $("question"), scan: $("scan"), feedback: $("feedback"),
-    actions: $("actions"), next: $("btn-next"), safe: $("btn-safe"), safeLabel: $("btn-safe-label"),
+    board: $("board"), arrows: $("arrows"), meta: $("meta"), playedLabel: $("played-label"), played: $("played"), question: $("question"),
+    scan: $("scan"), feedback: $("feedback"), drill: document.querySelector(".drill"), note: $("note"), reveal: $("btn-reveal"), fixRow: $("fix-row"), showMe: $("btn-show"),
+    actions: $("actions"), next: $("btn-next"), safe: $("btn-safe"),
     side: $("device-side"), boxes: $("boxes"),
     done: $("st-done"), acc: $("st-acc"), streak: $("st-streak"),
-  }, { load: async () => null, save: async () => {} });
+  }, { load: async () => null, save: async () => {}, tolerance: cfg.trainer.fix_tolerance });
 
   const last = await store.get("last");
   if (last) {

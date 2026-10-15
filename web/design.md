@@ -41,7 +41,8 @@ On a desktop (1024px wide and 700px tall or more) the whole app fits the window 
 +---------------------------------+--------------------------------------------+
 ```
 
-- The stage is a square whose side is the window height minus the bar, capped at 58% of the width.
+- The stage is a square of about 90% of the available height (capped at 52% of the width), centered; the
+  layout is capped at 1280px so the page doesn't sprawl.
 - Views on `body[data-view]`: `intro` shows the hero and "How it works"; `waiting` shows the hero and
   a waiting line; `drill` swaps the hero for the board and shows counters and the drill.
 - Once a deck exists, the form collapses to one summary line ("Dudacio · rapid · 2 mo  CHANGE").
@@ -92,10 +93,10 @@ and right/wrong is a word plus inversion/frame and a solid/dashed arrow.
 |---|---|
 | squares | solid `--accent-wash` and `--accent-soft` (no hatching: it made pieces hard to read) |
 | pieces | the cburnett set (Colin M.L. Burnett, GPLv2+/BSD/GFDL), extracted from `chessground@9.2.1` at build time into `pieces/*.svg` |
-| last move | `--accent-mid` tint on both squares |
+| last move | 3px `--accent` inset frame on both squares, no fill (a tint vanished on the indigo dark squares) |
 | selected piece | 4px black inset frame |
-| legal targets | dimmed black square (empty) or black ring (capture) |
-| Checks / Captures chip on | 4px accent inset frame on each move's from and to squares |
+| legal targets | thin dark inset frame on each target square (no center dots); thicker on hover |
+| Checks / Captures chip on | an accent corner flag on each move's from and to squares |
 | Loose chip on | accent hatch and 2px accent frame on each of my pieces that is attacked and undefended |
 | answer arrow | solid when you found it, dashed when you missed |
 
@@ -106,15 +107,18 @@ and right/wrong is a word plus inversion/frame and a solid/dashed arrow.
 | Bar | `.bar` | 56px, wordmark left, links and status right, 4px rule below |
 | Status mark | `.mark` | 10px square: hollow idle, filled ready, blinking (steps, not fades) while working |
 | Input | `.input` | 2px underline only; 4px on focus; italic serif placeholder |
-| Toggle | `.toggle` | joined 1px boxes; checked inverts to black |
+| Time-control chip | `.toggle` | separate filter chips with a leading check box (the standard multi-select cue; joined boxes read as pick-one); hover = accent wash and outline; checked = filled accent tick and 2px border |
 | Button | `.btn`, `.btn.primary`, `.btn.ghost` | 2px border, mono caps; hover inverts instantly |
 | Progress | `.meter` | 4px track filling with `--accent` |
-| Counters | `.counters` | inverted band; review boxes as white bars in the last column |
+| Counters | `.counters` | inverted band; every column is a 2rem value row over a label row, so numbers and review bars share one line; box counts in tooltips |
 | Played move | `.played-move` | 36px mono on `--accent-wash` with a 4px accent underline: the focal point of the drill |
 | Question | `.question` | Playfair italic, one line ("Can White punish it?") |
 | Scan chip | `.chip[data-kind]` | Checks / Captures / Loose; shows `?` until pressed, then the count, accent fill, and lights the board |
-| Answer row | `.answer` | an accent square + "Move their piece on the board", *or*, "Nothing works" |
-| Feedback | `.fb.ok`, `.fb.no` | verdict (Playfair italic) and game link; move cards; eval bar or "Mate in N". Found = inverted; missed = framed with an 8px left edge |
+| Answer row | `.answer` | an accent square + "Move their piece on the board", *or*, "Nothing works"; after a wrong try a note says so and **Reveal** appears |
+| Fix row | `#fix-row` | after the punishment: the board rewinds to before my move; "Move your piece on the board", **Show me** after a wrong fix |
+| Note | `.note` | try-again message: accent wash with a 4px accent edge |
+| Feedback | `.fb.ok`, `.fb.no` | verdict and game link; move cards; eval bar or "Mate in N". Inverted only if the first try was right; framed otherwise. After the fix step one block replaces it (punishment, your move, your fix, engine's move) |
+| Game link | `.game-link` | the underline never grows; the ↗ arrow nudges up-right on hover |
 | Move card | `.card`, `.card.key`, `.card.struck`, `.card.miss` | their best reply in accent; what you played struck through; your wrong try struck and grayed |
 | Eval bar | `.evalbar` | −6 to +6 pawns, zero tick, hollow square before your move, filled after, accent span between |
 | How it works | `.how` | three columns: accent number, one word, one mono line |
