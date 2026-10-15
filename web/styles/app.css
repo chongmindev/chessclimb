@@ -262,6 +262,7 @@ body:not([data-view="intro"]) .how { display: none; }
 .how li { counter-increment: how; display: flex; flex-direction: column; gap: 6px; padding: 18px 16px 18px 0; }
 .how li + li { border-left: var(--hairline); padding-left: 16px; }
 .how li::before { content: "0" counter(how); font: 400 3rem/1 var(--f-display); color: var(--accent); }
+.how .label { white-space: nowrap; }
 .how h2 { margin: 0; font: 700 1.5rem/1.1 var(--f-display); letter-spacing: var(--track-tight); }
 
 body[data-view="drill"] .form:not(.open) .form-body { display: none; }
