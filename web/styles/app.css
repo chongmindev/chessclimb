@@ -104,16 +104,20 @@ svg.arrows { position: absolute; inset: 0; width: 100%; height: 100%; pointer-ev
 .form-row { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 20px; align-items: end; }
 .field { display: flex; flex-direction: column; gap: 2px; }
 .input {
-  width: 100%; min-height: var(--touch); padding: 4px 0;
+  width: 100%; min-height: var(--touch); padding: 4px 8px;
   border: 0; border-bottom: var(--medium); background: transparent;
   font: 500 1.125rem var(--f-mono); color: var(--ink);
 }
 .input::placeholder { color: var(--ink-muted); font-style: italic; font-family: var(--f-body); }
+/* Hover: the underline turns accent and a tint sits behind the field, saying "you can type or pick here". */
+.input { transition: background var(--t), border-color var(--t); }
+.input:hover, .dropdown-button:hover { background-color: var(--tint); border-bottom-color: var(--accent); }
 .input:focus, .input:focus-visible { outline: none; border-bottom-width: 4px; padding-bottom: 2px; }
+.field > .label { padding-left: 8px; }
 /* Custom dropdown (src/select.js): an underlined button like the inputs, and a framed list below it. */
 .dropdown { position: relative; }
 .dropdown-button { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; cursor: pointer;
-  background: var(--chevron) no-repeat right 0 center / 18px; padding-right: 26px; }
+  background: var(--chevron) no-repeat right 6px center / 18px; padding-right: 32px; }
 .dropdown.open .dropdown-button { border-bottom-width: 4px; padding-bottom: 2px; background-image: none; }
 .dropdown.open .dropdown-button::after { content: ""; position: absolute; right: 4px; top: 50%; width: 8px; height: 8px; margin-top: -2px;
   border: solid var(--ink); border-width: 1.5px 0 0 1.5px; transform: rotate(45deg); }
