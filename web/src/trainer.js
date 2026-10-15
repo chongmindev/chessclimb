@@ -13,7 +13,7 @@ const fmt = (v) => (v > 0 ? "+" : "") + v.toFixed(1);
 const lbl = (n, white, san) => `<span class="mv">${n}${white ? "." : "…"}${esc(san)}</span>`;
 
 export class Trainer {
-  /** els: {board, arrows, meta, prompt, feedback, actions, next, hint, safe, safeLabel, side, boxes, done, acc, streak} */
+  /** els: {board, arrows, meta, prompt, steps, feedback, actions, next, hint, safe, safeLabel, side, boxes, done, acc, streak} */
   constructor(els, { load, save }) {
     Object.assign(this, { els, load, save });
     this.items = [];
@@ -78,18 +78,19 @@ export class Trainer {
     }
   }
 
-  arrow(from, to, color) {
+  /** A right answer is drawn solid, a wrong one dashed: the shape carries the meaning, not the color. */
+  arrow(from, to, color, dashed = false) {
     const [x1, y1] = this.xy(from), [x2, y2] = this.xy(to);
     const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
     const ex = x2 - ux * 0.32, ey = y2 - uy * 0.32, hx = x2 - ux * 0.12, hy = y2 - uy * 0.12;
     const px = -uy * 0.22, py = ux * 0.22, bx = x2 - ux * 0.45, by = y2 - uy * 0.45;
-    return `<line x1="${x1}" y1="${y1}" x2="${ex}" y2="${ey}" stroke="${color}" stroke-width=".16" stroke-linecap="round" opacity=".85"/>` +
-      `<polygon points="${hx},${hy} ${bx + px},${by + py} ${bx - px},${by - py}" fill="${color}" opacity=".85"/>`;
+    return `<line x1="${x1}" y1="${y1}" x2="${ex}" y2="${ey}" stroke="${color}" stroke-width=".14"${dashed ? ' stroke-dasharray=".22 .14"' : ""} opacity=".9"/>` +
+      `<polygon points="${hx},${hy} ${bx + px},${by + py} ${bx - px},${by - py}" fill="${color}" opacity=".9"/>`;
   }
 
   drawArrows(list) {
     const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-    this.els.arrows.innerHTML = list.map(([f, t, c]) => this.arrow(f, t, css(c))).join("");
+    this.els.arrows.innerHTML = list.map(([f, t, c]) => this.arrow(f, t, css(c) || "#000", c === "--bad")).join("");
   }
 
   tap(s) {
@@ -141,6 +142,7 @@ export class Trainer {
     this.save(pr);
 
     this.els.feedback.innerHTML = `<div class="fb ${ok ? "ok" : "no"}" role="status">${html}</div>`;
+    if (this.els.steps) this.els.steps.hidden = true;     // make room for the feedback on one screen
     this.els.actions.hidden = true;
     this.els.next.hidden = false;
     this.els.next.focus();
@@ -156,7 +158,7 @@ export class Trainer {
     const counts = [0, 0, 0, 0, 0, 0];
     for (const it of this.items) counts[boxes[it.id] || 0]++;
     const max = Math.max(...counts, 1);
-    this.els.boxes.innerHTML = counts.map((n, i) => `<div><i style="height:${Math.round(4 + (40 * n) / max)}px"></i><span>${n}</span><span>${i === 0 ? "new" : "box " + i}</span></div>`).join("");
+    this.els.boxes.innerHTML = counts.map((n, i) => `<div title="${i === 0 ? "new" : "box " + i}: ${n}"><i style="height:${Math.round(1 + (27 * n) / max)}px"></i><span>${n}</span><span>${i === 0 ? "new" : "box " + i}</span></div>`).join("");
   }
 
   next() {
@@ -173,6 +175,7 @@ export class Trainer {
     if (this.els.side) this.els.side.textContent = `You play ${this.meW() ? "White" : "Black"}`;
     this.els.board.setAttribute("aria-label", `Chess board, ${this.meW() ? "White" : "Black"} at the bottom`);
     this.els.feedback.innerHTML = "";
+    if (this.els.steps) this.els.steps.hidden = false;
     this.els.actions.hidden = false;
     this.els.next.hidden = true;
     this.drawArrows([]);

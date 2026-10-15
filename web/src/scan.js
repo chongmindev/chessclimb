@@ -2,7 +2,7 @@
 // Games already analysed (with the same rules) are read from the store, so a return visit only
 // analyses new games.
 
-import { gameCandidates, selectDeck } from "./rules.js";
+import { gameCandidates, screenedCandidates, selectDeck } from "./rules.js";
 
 export function gameKey(game) {
   return game.link || `${game.date} ${game.opponent} ${game.moves.length}`;
@@ -13,60 +13,72 @@ export function rulesVersion(cfg) {
   return JSON.stringify(cfg.drills);
 }
 
+/**
+ * Two phases, both newest game first:
+ *   1. quick: screenedCandidates on every game not yet analysed, so most of the deck appears fast;
+ *   2. deep: gameCandidates on every game, reusing all cached evals, which completes the exact deck.
+ * Each game's result is stored with its phase, so a return visit resumes where the last one stopped.
+ */
 export class Scan {
-  /** onUpdate({deck, done, total, running, stats}) fires after every game. */
+  /** onUpdate({deck, phase, done, total, running, failed, stats}) fires after every game. */
   constructor({ username, games, evaluator, store, cfg, concurrency = 1, onUpdate = () => {} }) {
     Object.assign(this, { username, games, evaluator, store, cfg, concurrency, onUpdate });
     this.prefix = `${username.toLowerCase()}|${rulesVersion(cfg)}|`;
-    this.threats = [];
-    this.safes = [];
-    this.done = 0;
+    this.byGame = new Map();     // gameKey -> {phase, threats, safes}
     this.failed = [];
     this.stopped = false;
+    this.phase = 1;
   }
 
   deck() {
-    return selectDeck(this.threats, this.safes, this.cfg);
+    const threats = [], safes = [];
+    for (const c of this.byGame.values()) { threats.push(...c.threats); safes.push(...c.safes); }
+    return selectDeck(threats, safes, this.cfg);
   }
 
+  /** done and total count all games, so a resumed scan reads "game 10 of 107", not "game 1 of 98". */
   _emit(running) {
-    this.onUpdate({ deck: this.deck(), done: this.done, total: this.games.length, running, failed: this.failed.length, stats: this.evaluator.stats });
+    let done = this.failed.length;
+    for (const c of this.byGame.values()) if (c.phase >= this.phase) done++;
+    this.onUpdate({ deck: this.deck(), phase: this.phase, done: Math.min(done, this.games.length), total: this.games.length,
+                    running, failed: this.failed.length, stats: this.evaluator.stats });
   }
 
-  async run() {
-    const queue = [...this.games];
-    // Cached games first, so the deck shows what we already know before any engine work.
-    const pending = [];
-    for (const g of queue) {
-      const c = await this.store.getCandidates(this.prefix + gameKey(g));
-      if (c) this._add(c); else pending.push(g);
-    }
+  async _pass(games, phase, analyseGame) {
+    this.phase = phase;
+    const pending = [...games];
     this._emit(pending.length > 0);
     const worker = async () => {
       while (pending.length && !this.stopped) {
         const g = pending.shift();
+        const key = gameKey(g);
         try {
-          const c = await gameCandidates(g, this.evaluator.forGame(), this.cfg);
-          await this.store.putCandidates(this.prefix + gameKey(g), c);
-          this._add(c);
+          const c = { phase, ...(await analyseGame(g, this.evaluator.forGame(), this.cfg)) };
+          await this.store.putCandidates(this.prefix + key, c);
+          this.byGame.set(key, c);
         } catch (e) {
-          // One bad game must not stop the scan. It isn't cached, so it is retried next visit.
-          console.error(`threatscan: skipped game ${gameKey(g)}`, e);
-          this.failed.push(gameKey(g));
-          this.done++;
+          // One bad game must not stop the scan. It isn't stored, so it is retried next visit.
+          console.error(`threatscan: skipped game ${key}`, e);
+          this.failed.push(key);
         }
         this._emit(pending.length > 0);
       }
     };
     await Promise.all(Array.from({ length: Math.max(1, this.concurrency) }, worker));
-    this._emit(false);
-    return this.deck();
   }
 
-  _add(c) {
-    this.threats.push(...c.threats);
-    this.safes.push(...c.safes);
-    this.done++;
+  async run() {
+    for (const g of this.games) {
+      const c = await this.store.getCandidates(this.prefix + gameKey(g));
+      if (c) this.byGame.set(gameKey(g), c);
+    }
+    const unseen = this.games.filter((g) => !this.byGame.has(gameKey(g)));
+    await this._pass(unseen, 1, screenedCandidates);
+    const shallow = this.games.filter((g) => this.byGame.get(gameKey(g))?.phase !== 2);
+    if (!this.stopped) await this._pass(shallow, 2, gameCandidates);
+    this.phase = 2;
+    this._emit(false);
+    return this.deck();
   }
 
   stop() {

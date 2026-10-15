@@ -21,6 +21,10 @@
     "safe_sample_rate": 0.3,
     "safe_ratio": 0.6
   },
+  "scan": {
+    "screen_depth": 10,
+    "screen_margin": 100
+  },
   "fetch": {
     "base_url": "https://api.chess.com/pub",
     "min_interval": 1.0,

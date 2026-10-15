@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { Chess } from "chess.js";
 import { ChessCom } from "../src/chesscom.js";
 import { EnginePool, Evaluator, fromEntries, LichessCloud } from "../src/evals.js";
+import { buildItems, gameCandidates, screenedCandidates } from "../src/rules.js";
 import { Scan } from "../src/scan.js";
 import { MemoryStore } from "../src/store.js";
 
@@ -148,4 +149,41 @@ test("Scan skips a game that fails and keeps going", async () => {
   } finally { console.error = orig; }
   assert.equal(updates.at(-1).done, 2);
   assert.equal(updates.at(-1).failed, 1);
+});
+
+
+// Shallow searches (depth < drills.depth) see nothing; the deep search sees the blunder.
+function depthAwareEngine(blunderFen) {
+  const base = new FakeEngine();
+  return { calls: [], async analyse(fen, depth, multipv) {
+    this.calls.push([fen, depth, multipv]);
+    if (fen === blunderFen && depth >= cfg.drills.depth) return [{ move: "h5f7", cp: 9999, mate: 1 }];
+    return base.lines(fen).slice(0, multipv);
+  } };
+}
+
+test("quick pass items are identical to the full pass's; the deep pass finds what the screen missed", async () => {
+  const c = new Chess();
+  for (const m of ["e4", "e5", "Qh5", "Nc6", "Bc4", "Nf6"]) c.move(m);
+  const store = new MemoryStore();
+  const { cc } = fakeChessCom(store);
+  const games = await cc.games("me", { months: 2 });
+  const blunderGame = games.find((g) => g.link === "g1");
+
+  // A screen that sees the blunder (same evals at every depth) finds the same item as the full pass.
+  const eng = new FakeEngine((fen) => fen === c.fen() ? [{ move: "h5f7", cp: 9999, mate: 1 }] : new FakeEngine().lines(fen));
+  const analyse = (f, d, m) => eng.analyse(f, d, m);
+  assert.deepEqual(await screenedCandidates(blunderGame, analyse, cfg), await gameCandidates(blunderGame, analyse, cfg));
+
+  // A screen that is blind to it misses it; the two-phase Scan still ends with the exact full deck.
+  const blind = depthAwareEngine(c.fen());
+  const quick = await screenedCandidates(blunderGame, (f, d, m) => blind.analyse(f, d, m), cfg);
+  assert.equal(quick.threats.length, 0);
+  const phases = [];
+  const deck = await new Scan({ username: "me", games, store, cfg, evaluator: new Evaluator({ store, pool: new EnginePool([depthAwareEngine(c.fen())]) }),
+    onUpdate: (u) => phases.push([u.phase, u.deck.length]) }).run();
+  const full = await buildItems(games, (f, d, m) => depthAwareEngine(c.fen()).analyse(f, d, m), cfg);
+  assert.deepEqual(deck, full);
+  assert.deepEqual(deck.map((i) => i.reply), ["Qxf7#"]);
+  assert.ok(phases.some(([p, n]) => p === 1 && n === 0) && phases.at(-1)[0] === 2, JSON.stringify(phases));
 });

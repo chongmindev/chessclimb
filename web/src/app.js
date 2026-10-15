@@ -1,7 +1,7 @@
 // Wires the page: username -> Chess.com games -> scan (cache, Lichess cloud, engine pool) -> trainer.
 
 import { ChessCom } from "./chesscom.js";
-import { EnginePool, Evaluator, LichessCloud } from "./evals.js";
+import { EnginePool, Evaluator } from "./evals.js";
 import { Scan } from "./scan.js";
 import { IdbStore, MemoryStore } from "./store.js";
 import { Trainer } from "./trainer.js";
@@ -61,13 +61,17 @@ async function start(store, trainer, username, months, timeClasses) {
     return;
   }
   await store.set("last", { username, months, timeClasses });
+  $("who").textContent = `${username} · ${timeClasses.join(", ") || "all"} · ${months} mo`;
+  $("start").classList.remove("open");
+  document.body.dataset.view = "waiting";
 
   if (!pool) {
     const engines = await Promise.all(Array.from({ length: poolSize() }, () =>
       new UciEngine(workerTransport(ENGINE_URL), { mateScore: cfg.engine.mate_score }).init({ Hash: 16 })));
     pool = new EnginePool(engines);
   }
-  const evaluator = new Evaluator({ store, pool, cloud: new LichessCloud({ mateScore: cfg.engine.mate_score }) });
+  // The Lichess cloud is off: measured slower than local engines (docs/decisions.md). Pass a LichessCloud to enable.
+  const evaluator = new Evaluator({ store, pool, cloud: null });
   const key = `progress|${username.toLowerCase()}`;
   trainer.load = () => store.get(key);
   trainer.save = (p) => store.set(key, p);
@@ -77,13 +81,15 @@ async function start(store, trainer, username, months, timeClasses) {
   scan = new Scan({ username, games, evaluator, store, cfg, concurrency: pool.size, onUpdate: (u) => {
     const threats = u.deck.filter((i) => i.kind === "threat").length;
     setState(u.running ? "scanning" : "ready");
-    $("bar").style.width = `${Math.round((100 * u.done) / u.total)}%`;
+    // Quick pass fills the first 60% of the meter, the deep pass the rest.
+    const frac = u.total ? u.done / u.total : 1;
+    $("bar").style.width = `${Math.round(100 * (u.phase === 1 ? 0.6 * frac : 0.6 + 0.4 * frac))}%`;
     const secs = Math.round((Date.now() - t0) / 1000);
+    const pass = u.phase === 1 ? "Quick pass" : "Deep pass, finding the last few";
     $("status-text").textContent = u.running
-      ? `Analysing game ${u.done + 1} of ${u.total}, newest first · ${u.deck.length} positions so far (${threats} threats) · ${secs}s · ${pool.size} engines`
-      : `All ${u.total} games analysed · ${u.deck.length} positions (${threats} threats, ${u.deck.length - threats} safe)`;
-    $("trainer").hidden = u.deck.length === 0;
-    $("waiting").hidden = u.deck.length > 0;
+      ? `${pass}: game ${Math.min(u.done + 1, u.total)} of ${u.total} · ${u.deck.length} positions (${threats} threats) · ${secs}s · ${pool.size} engines`
+      : `All games analysed · ${u.deck.length} positions (${threats} threats, ${u.deck.length - threats} safe)`;
+    document.body.dataset.view = u.deck.length ? "drill" : "waiting";
     trainer.setItems(u.deck);
   } });
   await scan.run();
@@ -92,7 +98,7 @@ async function start(store, trainer, username, months, timeClasses) {
 async function main() {
   const store = await openStore();
   const trainer = new Trainer({
-    board: $("board"), arrows: $("arrows"), meta: $("meta"), prompt: $("prompt"), feedback: $("feedback"),
+    board: $("board"), arrows: $("arrows"), meta: $("meta"), prompt: $("prompt"), steps: $("steps"), feedback: $("feedback"),
     actions: $("actions"), next: $("btn-next"), hint: $("btn-hint"), safe: $("btn-safe"), safeLabel: $("btn-safe-label"),
     side: $("device-side"), boxes: $("boxes"),
     done: $("st-done"), acc: $("st-acc"), streak: $("st-streak"),
@@ -104,6 +110,7 @@ async function main() {
     $("months").value = String(last.months);
     for (const box of document.querySelectorAll("input[name=tc]")) box.checked = last.timeClasses.includes(box.value);
   }
+  $("btn-change").addEventListener("click", () => { $("start").classList.add("open"); $("username").focus(); });
   $("start").addEventListener("submit", (e) => {
     e.preventDefault();
     const username = $("username").value.trim();

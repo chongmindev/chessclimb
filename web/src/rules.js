@@ -79,7 +79,7 @@ export async function* walk(game, analyse, depth, cap) {
     if (mine && isGameOver(chess, seen)) return;
     line = (await analyse(chess.fen(), depth, 1))[0];
     if (mine) {
-      yield { game, moveNumber: Math.floor(i / 2) + 1, fen: chess.fen(), move: m, uci: uciOf(m),
+      yield { game, moveNumber: Math.floor(i / 2) + 1, fenBefore, fen: chess.fen(), move: m, uci: uciOf(m),
               san: m.san, bestSan, before, after: clamp(pov(line, game.color), cap) };
     }
   }
@@ -132,23 +132,63 @@ export async function safeItem(c, p, lines, cap) {
   return { ...(await base(p)), kind: "safe", reply: sanOf(p.fen, top.move) };
 }
 
-/** Candidate items from one game: threats, and safe items with their sample key. */
-export async function gameCandidates(game, analyse, cfg) {
+/** Run the drill rules on one of my moves (evals at full depth). Returns {threat}, {safe: {key, item}} or null. */
+async function classify(p, analyse, cfg) {
   const c = cfg.drills, cap = cfg.engine.eval_cap;
-  const threats = [], safes = [];
-  for await (const p of walk(game, analyse, c.depth, cap)) {
-    if (isThreatCandidate(c, p)) {
-      const item = await threatItem(c, p, await analyse(p.fen, c.depth, c.multipv), cap);
-      if (item) threats.push(item);
-    } else if (isSafeCandidate(c, p)) {
-      const key = await sampleKey(c.seed, p.fen, p.uci);
-      if (key < c.safe_sample_rate) {
-        const item = await safeItem(c, p, await analyse(p.fen, c.depth, c.multipv), cap);
-        if (item) safes.push({ key, item });
-      }
+  if (isThreatCandidate(c, p)) {
+    const item = await threatItem(c, p, await analyse(p.fen, c.depth, c.multipv), cap);
+    return item && { threat: item };
+  }
+  if (isSafeCandidate(c, p)) {
+    const key = await sampleKey(c.seed, p.fen, p.uci);
+    if (key < c.safe_sample_rate) {
+      const item = await safeItem(c, p, await analyse(p.fen, c.depth, c.multipv), cap);
+      return item && { safe: { key, item } };
     }
   }
+  return null;
+}
+
+function collect(results) {
+  const threats = [], safes = [];
+  for (const r of results) {
+    if (r?.threat) threats.push(r.threat);
+    if (r?.safe) safes.push(r.safe);
+  }
   return { threats, safes };
+}
+
+/** Candidate items from one game: threats, and safe items with their sample key. Every position at full depth. */
+export async function gameCandidates(game, analyse, cfg) {
+  const results = [];
+  for await (const p of walk(game, analyse, cfg.drills.depth, cfg.engine.eval_cap)) results.push(await classify(p, analyse, cfg));
+  return collect(results);
+}
+
+/**
+ * The quick pass: screen every position at scan.screen_depth, then apply the full-depth rules only to my
+ * moves within scan.screen_margin of a threshold. Those moves get the same deep evals as gameCandidates,
+ * so every item found here is identical to the full pass's; it just may miss a few (measured ~3%).
+ */
+export async function screenedCandidates(game, analyse, cfg) {
+  const c = cfg.drills, cap = cfg.engine.eval_cap, { screen_depth: depth, screen_margin: margin } = cfg.scan;
+  const picks = [];
+  for await (const p of walk(game, analyse, depth, cap)) {
+    const l = loss(p);
+    const threat = p.moveNumber >= c.threat_min_move && p.before > c.threat_min_before - margin && l >= c.threat_min_loss - margin;
+    const safe = p.moveNumber >= c.safe_min_move && l <= c.safe_max_loss + margin &&
+      (await sampleKey(c.seed, p.fen, p.uci)) < c.safe_sample_rate;
+    if (threat || safe) picks.push(p);
+  }
+  const results = [];
+  for (const p of picks) {
+    const lineBefore = (await analyse(p.fenBefore, c.depth, 1))[0];
+    const lineAfter = (await analyse(p.fen, c.depth, 1))[0];
+    const deep = { ...p, before: clamp(pov(lineBefore, p.game.color), cap), after: clamp(pov(lineAfter, p.game.color), cap),
+                   bestSan: lineBefore.move ? sanOf(p.fenBefore, lineBefore.move) : null };
+    results.push(await classify(deep, analyse, cfg));
+  }
+  return collect(results);
 }
 
 /** The deck: every threat, plus the lowest-keyed safe items up to safe_ratio per threat. */

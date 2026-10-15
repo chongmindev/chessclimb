@@ -20,6 +20,7 @@ def exported() -> str:
     data = {"_note": "generated from config.toml by tools/export_config.py; do not edit",
             "engine": {"mate_score": e.mate_score, "eval_cap": e.eval_cap},
             "drills": asdict(cfg.drills),
+            "scan": asdict(cfg.scan),
             "fetch": {"base_url": cfg.fetch.base_url, "min_interval": cfg.fetch.min_interval,
                       "months": cfg.fetch.months, "time_classes": list(cfg.fetch.time_classes)}}
     return json.dumps(data, indent=2) + "\n"

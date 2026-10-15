@@ -19,6 +19,12 @@ backoff = 5.0             # seconds, times the attempt number
 months = 2
 time_classes = ["rapid"]  # bullet, blitz, rapid, daily; empty list = all
 
+[scan]
+# Browser only. A quick pass screens every position at screen_depth and runs the drill rules at full depth
+# only on moves within screen_margin of a threshold; a deep pass afterwards completes the exact deck.
+screen_depth = 10
+screen_margin = 100
+
 [report]
 depth = 14
 error_loss = 100          # a move losing this much is listed as an error

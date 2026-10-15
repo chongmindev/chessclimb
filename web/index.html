@@ -5,136 +5,136 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Threat Scan</title>
 <meta name="description" content="Drill the positions from your own Chess.com games where your opponent could punish your move.">
-<meta name="theme-color" content="#e0e5ec">
+<meta name="theme-color" content="#ffffff">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols+2&display=swap&text=%E2%99%9A%E2%99%9B%E2%99%9C%E2%99%9D%E2%99%9E%E2%99%9F">
 <link rel="stylesheet" href="./styles/tokens.css">
 <link rel="stylesheet" href="./styles/app.css">
 <script type="importmap">{"imports": {"chess.js": "./vendor/chess.js"}}</script>
 </head>
-<body>
-<!-- Icons: lucide (ISC), inlined as a sprite. -->
+<body data-view="intro">
+<a class="skip" href="#panel">Skip to the controls</a>
+<!-- Icons: lucide (ISC), inlined as a sprite, stroke 1.5. -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="i-scan" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M22 12h-4M6 12H2M12 6V2M12 22v-4"/></symbol>
-  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
-  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
   <symbol id="i-next" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
-  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></symbol>
-  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5M12 3v12"/></symbol>
 </svg>
 
-<div class="wrap">
-  <header class="nameplate">
-    <div class="brand">
-      <span class="knob" aria-hidden="true"></span>
-      <span class="wordmark">Threat Scan</span>
-      <span class="label model">TS-01</span>
-    </div>
-    <div class="status-chip" aria-live="polite">
-      <span class="led" id="led" data-state="idle"></span>
-      <span class="label" id="led-label">Standby</span>
+<div class="app">
+  <header class="bar">
+    <span class="wordmark">Threat Scan</span>
+    <div class="bar-right">
+      <nav class="bar-links" aria-label="Progress">
+        <button class="btn ghost" id="btn-export" type="button">Export</button>
+        <label class="btn ghost" for="file-import">Import<input class="visually-hidden" type="file" id="file-import" accept="application/json"></label>
+      </nav>
+      <div class="status-chip" aria-live="polite">
+        <span class="mark" id="led" data-state="idle"></span>
+        <span class="label" id="led-label">Standby</span>
+      </div>
     </div>
   </header>
 
-  <section class="hero">
-    <div>
-      <p class="label">Defensive scan trainer</p>
-      <h1>See their reply <em>before</em> you move.</h1>
-      <p class="lede">Every position comes from your own finished Chess.com games, right after a move you made. Find the reply that punishes it, or confirm there isn't one.</p>
-    </div>
-
-    <form class="module" id="start" aria-labelledby="start-title">
-      <div class="vents" aria-hidden="true"><i></i><i></i><i></i></div>
-      <div class="module-head"><span class="led on" aria-hidden="true"></span><span class="label" id="start-title">Input · your games</span></div>
-      <div class="form-grid">
-        <label class="field"><span class="label">Chess.com username</span>
-          <input class="slot" type="text" id="username" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="username" required>
-        </label>
-        <label class="field"><span class="label">Games from the last</span>
-          <select class="slot" id="months">
-            <option value="1">1 month</option>
-            <option value="2" selected>2 months</option>
-            <option value="3">3 months</option>
-            <option value="6">6 months</option>
-          </select>
-        </label>
-        <fieldset class="toggles span">
-          <legend class="label">Time controls</legend>
-          <label class="toggle"><input type="checkbox" name="tc" value="rapid" checked><span>Rapid</span></label>
-          <label class="toggle"><input type="checkbox" name="tc" value="blitz"><span>Blitz</span></label>
-          <label class="toggle"><input type="checkbox" name="tc" value="bullet"><span>Bullet</span></label>
-          <label class="toggle"><input type="checkbox" name="tc" value="daily"><span>Daily</span></label>
-        </fieldset>
-        <div class="span"><button class="key primary wide" type="submit"><svg class="icon"><use href="#i-scan"/></svg>Scan my games</button></div>
+  <main class="main">
+    <div class="stage">
+      <div class="hero">
+        <div>
+          <p class="label">A defensive scan, drilled on your own games</p>
+          <h1>See their reply <em>before</em> you move.</h1>
+        </div>
+        <div>
+          <div class="hero-rule" aria-hidden="true"></div>
+          <p>Every position is from a finished Chess.com game of yours, right after a move you made. <b>Find the reply that punishes it, or confirm there isn't one.</b></p>
+        </div>
       </div>
-      <p class="error" id="error" role="alert" hidden></p>
-    </form>
-  </section>
-
-  <section class="display" id="status" hidden aria-live="polite">
-    <div class="readout"><span class="led" id="status-led" data-state="scanning"></span><span id="status-text"></span></div>
-    <div class="meter"><i id="bar"></i></div>
-  </section>
-
-  <section class="module waiting" id="waiting" hidden>
-    <span class="spinner" aria-hidden="true"></span>
-    <span>Analysing your newest game. Positions appear here as each game finishes; the first takes a few seconds.</span>
-  </section>
-
-  <section class="bench" id="trainer" hidden>
-    <div class="device">
-      <div class="device-bar"><span class="label">Board</span><span class="label" id="device-side"></span></div>
       <div class="boardbox">
         <div class="board" id="board" role="grid" aria-label="Chess board"></div>
         <svg class="arrows" id="arrows" viewBox="0 0 8 8" aria-hidden="true"></svg>
       </div>
-      <div class="device-side" aria-hidden="true"><i></i><i></i></div>
     </div>
 
-    <div class="controls">
-      <div class="display">
-        <div class="counters">
-          <div class="counter"><b id="st-done">0</b><span class="label">Answered</span></div>
-          <div class="counter"><b id="st-acc">–</b><span class="label">Correct</span></div>
-          <div class="counter"><b id="st-streak">0</b><span class="label">Streak</span></div>
+    <section class="panel" id="panel" aria-label="Controls">
+      <form class="form" id="start">
+        <div class="form-summary">
+          <span class="who" id="who"></span>
+          <button class="btn ghost" type="button" id="btn-change">Change</button>
+        </div>
+        <div class="form-body">
+          <div class="form-row">
+            <label class="field"><span class="label">Chess.com username</span>
+              <input class="input" type="text" id="username" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="your username" required>
+            </label>
+            <label class="field"><span class="label">From the last</span>
+              <select class="input" id="months">
+                <option value="1">1 month</option>
+                <option value="2" selected>2 months</option>
+                <option value="3">3 months</option>
+                <option value="6">6 months</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-row tc" style="margin-top:14px">
+            <fieldset class="toggles">
+              <legend class="visually-hidden">Time controls</legend>
+              <label class="toggle"><input type="checkbox" name="tc" value="rapid" checked><span>Rapid</span></label>
+              <label class="toggle"><input type="checkbox" name="tc" value="blitz"><span>Blitz</span></label>
+              <label class="toggle"><input type="checkbox" name="tc" value="bullet"><span>Bullet</span></label>
+              <label class="toggle"><input type="checkbox" name="tc" value="daily"><span>Daily</span></label>
+            </fieldset>
+            <button class="btn primary" type="submit">Scan games<svg class="icon"><use href="#i-next"/></svg></button>
+          </div>
+        </div>
+        <p class="error" id="error" role="alert" hidden></p>
+      </form>
+
+      <ol class="how" aria-label="How it works">
+        <li><div><h2>Your finished games</h2><p>Fetched from Chess.com's public archive. Games in progress are never touched.</p></div></li>
+        <li><div><h2>Every move, checked</h2><p>Stockfish runs in this browser, one engine per core, newest games first. Nothing is uploaded.</p></div></li>
+        <li><div><h2>Drill the punishments</h2><p>Positions where your move let your opponent win material or mate, and safe ones to keep you honest. Misses come back sooner.</p></div></li>
+      </ol>
+
+      <div class="status" id="status" hidden aria-live="polite">
+        <div class="readout"><span class="mark" id="status-led" data-state="scanning"></span><span id="status-text"></span></div>
+        <div class="meter"><i id="bar"></i></div>
+      </div>
+
+      <p class="waiting" id="waiting">Analysing your newest games. The first positions appear in a few seconds.</p>
+
+      <div class="counters" id="trainer">
+        <div class="counter"><b id="st-done">0</b><span class="label">Answered</span></div>
+        <div class="counter"><b id="st-acc">–</b><span class="label">Correct</span></div>
+        <div class="counter"><b id="st-streak">0</b><span class="label">Streak</span></div>
+        <div class="counter vu" title="Spaced repetition: a miss sends a position back to box 1, so it returns sooner">
+          <div class="boxes" id="boxes"></div>
+          <span class="label">Review boxes</span>
         </div>
       </div>
 
-      <div class="module controls">
-        <div class="vents" aria-hidden="true"><i></i><i></i><i></i></div>
+      <section class="drill" aria-label="Position">
         <div class="meta" id="meta"></div>
         <p class="prompt" id="prompt"></p>
         <ol class="steps" id="steps">
-          <li>List every check your opponent has.</li>
-          <li>List every capture your opponent has.</li>
-          <li>Ask what's newly loose after your move.</li>
+          <li>Every check your opponent has.</li>
+          <li>Every capture your opponent has.</li>
+          <li>Whatever your move just left loose.</li>
         </ol>
-        <div class="keys" id="actions">
-          <button class="key" id="btn-hint" type="button"><svg class="icon"><use href="#i-eye"/></svg>Show checks &amp; captures</button>
-          <button class="key" id="btn-safe" type="button"><svg class="icon"><use href="#i-shield"/></svg><span id="btn-safe-label">Nothing works for them</span></button>
+        <div class="btns" id="actions">
+          <button class="btn" id="btn-hint" type="button">Show checks &amp; captures</button>
+          <button class="btn" id="btn-safe" type="button"><span id="btn-safe-label">Nothing works for them</span></button>
         </div>
         <div id="feedback"></div>
-        <div class="keys"><button class="key primary" id="btn-next" type="button" hidden>Next position<svg class="icon"><use href="#i-next"/></svg></button></div>
-        <div class="vu">
-          <span class="label">Review boxes · misses come back sooner</span>
-          <div class="boxes" id="boxes"></div>
-        </div>
-      </div>
-    </div>
-  </section>
+        <div class="btns"><button class="btn primary" id="btn-next" type="button" hidden>Next position<svg class="icon"><use href="#i-next"/></svg></button></div>
+        <span class="visually-hidden" id="device-side"></span>
+      </section>
 
-  <footer class="foot">
-    <div class="rule" aria-hidden="true"></div>
-    <p>Only finished games are analysed, from Chess.com's public archives. Everything runs in your browser: your games, the engine's work and your progress stay on this device. Common opening positions are looked up in the <a href="https://lichess.org/api#tag/Analysis/operation/apiCloudEval" target="_blank" rel="noopener">Lichess cloud evaluation</a> database.</p>
-    <div class="keys">
-      <button class="key ghost" id="btn-export" type="button"><svg class="icon"><use href="#i-download"/></svg>Export progress</button>
-      <label class="key ghost" for="file-import"><svg class="icon"><use href="#i-upload"/></svg>Import progress<input class="visually-hidden" type="file" id="file-import" accept="application/json"></label>
-      <span id="import-note" class="label" aria-live="polite"></span>
-    </div>
-    <p class="label">Engine: <a href="https://github.com/nmrugg/stockfish.js" target="_blank" rel="noopener">Stockfish.js 19 lite</a> · GPLv3 (<a href="https://github.com/nmrugg/stockfish.js" target="_blank" rel="noopener">source</a>) · Not affiliated with Chess.com or Lichess</p>
-  </footer>
+      <p class="foot label">
+        <span id="import-note">Finished games only · runs in your browser</span>
+        <a href="https://github.com/nmrugg/stockfish.js" target="_blank" rel="noopener">Stockfish.js 19 lite, GPLv3</a>
+        <a href="https://github.com/chongmindev/chessclimb" target="_blank" rel="noopener">Source</a>
+      </p>
+    </section>
+  </main>
 </div>
 <script type="module" src="./src/app.js"></script>
 </body>

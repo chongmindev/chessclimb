@@ -2,6 +2,43 @@
 
 Each entry: what was chosen, what was rejected, and the evidence. Newest first.
 
+## 2026-10-15 · Lichess cloud evals are off by default
+
+Benchmarked a 30-game scan in Node with 7 lite engines (`web/bench/scan.mjs`):
+
+| | first item | quick pass done | full deck |
+|---|---|---|---|
+| cloud off | 8.2 s | 83 s | 123 s |
+| cloud on | 7.9 s | 108 s | 172 s |
+
+The cloud answered 8 of 11 requests, but its serial queue (one request at a time, by Lichess's rules)
+stalls engines that could search the same position locally in 8–47 ms. The code stays; pass a
+`LichessCloud` to `Evaluator` to enable it, which may help on devices with one or two cores.
+
+## 2026-10-15 · Two-phase scan: quick screened pass, then a deep pass
+
+Measured on the 107 reference games against the single-pass lite deck (`tools/measure_twopass.py`):
+
+| screen depth | margin | threats found | deep positions needed |
+|---|---|---|---|
+| 6 | 100 | 90.8% | 30% |
+| 8 | 100 | 94.1% | 30% |
+| **10** | **100** | **97.4%** | **29%** |
+| 10 | 200 | 98.0% | 43% |
+
+Lite search costs 2 / 4 / 8 / 47 ms per position at depth 6 / 8 / 10 / 13. Chosen: screen at depth 10,
+margin 100 cp, then a deep pass over every game that reuses the cache. The quick pass shows about 97% of
+the deck in under half the engine time; the deep pass ends with exactly the single-pass deck, so nothing
+is lost. Rejected: shipping the screened deck alone (2–3% of threats missed even at a 200 cp margin).
+
+## 2026-10-15 · Lite vs. full Stockfish: what the 79% means
+
+Lite (browser) vs. native full, both depth 13, on 107 games: full 170 threats, lite 152, both 134
+(recall 79%, precision 88%). On all 134 shared threats lite's reply is one full accepts. The
+disagreements sit at the thresholds: swings near 2.5 pawns, "before" evals near −3, and perpetual
+checks full sees and lite doesn't at depth 13. A noise baseline (full 1 thread vs. full 4 threads) is
+being measured to tell engine noise from lite weakness.
+
 ## 2026-10-15 · Chess.com games are parsed from TCN, not PGN
 
 Chess.com archive entries carry `tcn`, two characters per move. Decoding it is arithmetic only.
