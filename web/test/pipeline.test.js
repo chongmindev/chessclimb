@@ -187,3 +187,25 @@ test("quick pass items are identical to the full pass's; the deep pass finds wha
   assert.deepEqual(deck.map((i) => i.reply), ["Qxf7#"]);
   assert.ok(phases.some(([p, n]) => p === 1 && n === 0) && phases.at(-1)[0] === 2, JSON.stringify(phases));
 });
+
+test("ChessCom ranges: newest N games, last N days, all time", async () => {
+  const base = "https://api.chess.com/pub/player/me/games";
+  const g = (n, t) => ({ rules: "chess", time_class: "rapid", end_time: t, pgn: PGN("me", "them", "1-0", `g${n}`, "1. d4 d5") });
+  const day = 86400, now = Date.UTC(2026, 9, 15) / 1000;
+  const pages = {
+    [`${base}/archives`]: { archives: [`${base}/2026/07`, `${base}/2026/09`, `${base}/2026/10`] },
+    [`${base}/2026/07`]: { games: [g(1, now - 90 * day)] },
+    [`${base}/2026/09`]: { games: [g(2, now - 30 * day), g(3, now - 20 * day)] },
+    [`${base}/2026/10`]: { games: [g(5, now - 2 * day), g(4, now - 10 * day)] },
+  };
+  const calls = [];
+  const cc = new ChessCom({ store: new MemoryStore(), minInterval: 0, now: () => new Date(now * 1000),
+    fetch: async (url) => { calls.push(url); return json(pages[url]); } });
+  const links = (gs) => gs.map((x) => x.link);
+  assert.deepEqual(links(await cc.games("me", { range: { games: 3 } })), ["g5", "g4", "g3"]);
+  assert.ok(!calls.includes(`${base}/2026/07`), "stops reading once it has enough games");
+  assert.deepEqual(links(await cc.games("me", { range: { days: 14 } })), ["g5", "g4"]);
+  assert.deepEqual(links(await cc.games("me", { range: { days: 25 } })), ["g5", "g4", "g3"]);
+  assert.deepEqual(links(await cc.games("me", { range: { all: true } })), ["g5", "g4", "g3", "g2", "g1"]);
+  assert.deepEqual(links(await cc.games("me", { months: 1 })), ["g5", "g4"]);
+});

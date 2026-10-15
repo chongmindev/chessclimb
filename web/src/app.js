@@ -39,7 +39,16 @@ async function openStore() {
 
 let scan = null, pool = null;
 
-async function start(store, trainer, username, months, timeClasses) {
+/** Range select value -> ChessCom range: g50 = newest 50 games, d30 = past 30 days, all = every archive. */
+export function parseRange(value) {
+  if (value === "all") return { all: true };
+  const n = Number(value.slice(1));
+  return value[0] === "g" ? { games: n } : { days: n };
+}
+
+async function start(store, trainer, username, rangeValue, timeClasses) {
+  const range = parseRange(rangeValue);
+  const rangeLabel = $("range").selectedOptions[0]?.textContent.toLowerCase() || rangeValue;
   scan?.stop();
   $("status").hidden = false;
   setState("fetching");
@@ -47,7 +56,7 @@ async function start(store, trainer, username, months, timeClasses) {
   $("error").hidden = true;
   let games;
   try {
-    games = await new ChessCom({ store, minInterval: cfg.fetch.min_interval }).games(username, { months, timeClasses });
+    games = await new ChessCom({ store, minInterval: cfg.fetch.min_interval }).games(username, { range, timeClasses });
   } catch (e) {
     $("error").textContent = e.message;
     $("error").hidden = false;
@@ -56,12 +65,12 @@ async function start(store, trainer, username, months, timeClasses) {
     return;
   }
   if (!games.length) {
-    $("status-text").textContent = `No finished ${timeClasses.join("/") || ""} games in the last ${months} month(s) of archives.`;
+    $("status-text").textContent = `No finished ${timeClasses.join("/") || ""} games (${rangeLabel}).`;
     setState("idle");
     return;
   }
-  await store.set("last", { username, months, timeClasses });
-  $("who").textContent = `${username} · ${timeClasses.join(", ") || "all"} · ${months} mo`;
+  await store.set("last", { username, range: rangeValue, timeClasses });
+  $("who").textContent = `${username} · ${timeClasses.join(", ") || "all"} · ${rangeLabel} · ${games.length} games`;
   $("start").classList.remove("open");
   document.body.dataset.view = "waiting";
 
@@ -107,7 +116,9 @@ async function main() {
   const last = await store.get("last");
   if (last) {
     $("username").value = last.username;
-    $("months").value = String(last.months);
+    // Older saves stored months; map them to the nearest time span.
+    const saved = last.range || { 1: "d30", 2: "d90", 3: "d90", 6: "d182" }[last.months] || "g50";
+    if ([...$("range").options].some((o) => o.value === saved)) $("range").value = saved;
     for (const box of document.querySelectorAll("input[name=tc]")) box.checked = last.timeClasses.includes(box.value);
   }
   $("btn-change").addEventListener("click", () => { $("start").classList.add("open"); $("username").focus(); });
@@ -116,7 +127,7 @@ async function main() {
     const username = $("username").value.trim();
     if (!username) return;
     const timeClasses = [...document.querySelectorAll("input[name=tc]:checked")].map((b) => b.value);
-    start(store, trainer, username, +$("months").value, timeClasses);
+    start(store, trainer, username, $("range").value, timeClasses);
   });
 
   $("btn-export").addEventListener("click", async () => {

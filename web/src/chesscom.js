@@ -42,19 +42,35 @@ export class ChessCom {
     return games;
   }
 
-  /** Standard games for the player from the last `months` archives, NEWEST first, optionally by time class. */
-  async games(username, { months = 2, timeClasses = ["rapid"], onMonth } = {}) {
-    const urls = (await this.archives(username)).slice(-months).reverse();
+  /**
+   * Standard games for the player, NEWEST first, optionally by time class. `range` picks how many:
+   *   {games: N}  the newest N matching games (reads archives back until it has N)
+   *   {days: N}   games that ended in the last N days
+   *   {months: N} the last N monthly archives
+   *   {all: true} every archive
+   * Archives are monthly, so only the months a range needs are read; past months come from the cache.
+   */
+  async games(username, { range = { months: 2 }, months, timeClasses = ["rapid"], onMonth } = {}) {
+    if (months) range = { months };
+    let urls = (await this.archives(username)).slice().reverse();
+    if (range.months) urls = urls.slice(0, range.months);
+    const since = range.days ? this.now().getTime() / 1000 - range.days * 86400 : -Infinity;
     const out = [];
     for (const url of urls) {
-      const raw = await this.month(username, url);
-      for (const g of raw) {
+      if (range.days) {
+        const [year, mon] = url.replace(/\/$/, "").split("/").slice(-2).map(Number);
+        if (Date.UTC(year, mon, 1) / 1000 < since) break;      // this month ended before the window
+      }
+      for (const g of await this.month(username, url)) {
         if (timeClasses.length && !timeClasses.includes(g.time_class)) continue;
+        if ((g.end_time ?? Infinity) < since) continue;
         const game = gameFromChessCom(g, username);
         if (game) out.push(game);
       }
       onMonth?.(url, out.length);
+      if (range.games && out.length >= range.games) break;
     }
-    return out.sort((a, b) => b.endTime - a.endTime);
+    out.sort((a, b) => b.endTime - a.endTime);
+    return range.games ? out.slice(0, range.games) : out;
   }
 }
