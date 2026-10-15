@@ -134,8 +134,8 @@ export class Trainer {
     const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
     const ex = x2 - ux * 0.32, ey = y2 - uy * 0.32, hx = x2 - ux * 0.12, hy = y2 - uy * 0.12;
     const px = -uy * 0.22, py = ux * 0.22, bx = x2 - ux * 0.45, by = y2 - uy * 0.45;
-    return `<line x1="${x1}" y1="${y1}" x2="${ex}" y2="${ey}" stroke="#000" stroke-width=".14"${dashed ? ' stroke-dasharray=".22 .14"' : ""}/>` +
-      `<polygon points="${hx},${hy} ${bx + px},${by + py} ${bx - px},${by - py}" fill="#000"/>`;
+    return `<line x1="${x1}" y1="${y1}" x2="${ex}" y2="${ey}" stroke-width=".14"${dashed ? ' stroke-dasharray=".22 .14"' : ""}/>` +
+      `<polygon points="${hx},${hy} ${bx + px},${by + py} ${bx - px},${by - py}"/>`;
   }
 
   drawArrows(list) {

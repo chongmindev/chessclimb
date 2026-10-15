@@ -3,24 +3,32 @@
 :root {
   color-scheme: light;
 
-  --white: #ffffff;
-  --black: #000000;
-  --muted: #f5f5f5;            /* the only fill besides black and white */
-  --ink-muted: #525252;        /* secondary text (7.8:1 on white) */
+  /* Paper and ink swap in night mode; components only ever use these names. */
+  --paper: #ffffff;
+  --ink: #000000;
+  --muted: #f5f5f5;            /* the only fill besides paper and ink */
+  --ink-muted: #525252;        /* secondary text (7.8:1 on paper) */
   --hairline-color: #e5e5e5;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 
   /* The one color: a pastel indigo, used only where the eye should go (board, highlights, progress). */
   --accent-wash: #eef0fd;      /* light squares */
   --accent-soft: #c5c9f4;      /* dark squares */
   --accent-mid: #9aa0ec;       /* last-move tint, progress fill */
   --accent: #5a5fd6;           /* marks, active chips, focus on the board (5.2:1 on white) */
+  --tint: var(--accent-wash);  /* UI washes: played-move chip, hovers, notes (text on it is ink) */
+  --sq-light: var(--accent-wash);
+  --sq-dark: var(--accent-soft);
+  --board-mark: var(--accent); /* last-move frame, hint flags, loose hatch */
+  --coord-light: var(--accent);   /* coordinates on light squares */
+  --coord-dark: #ffffff;          /* coordinates on dark squares */
 
   /* Lines carry the structure */
   --hairline: 1px solid var(--hairline-color);
-  --thin: 1px solid var(--black);
-  --medium: 2px solid var(--black);
-  --thick: 4px solid var(--black);
-  --ultra: 8px solid var(--black);
+  --thin: 1px solid var(--ink);
+  --medium: 2px solid var(--ink);
+  --thick: 4px solid var(--ink);
+  --ultra: 8px solid var(--ink);
 
   /* Type */
   --f-display: "Playfair Display", Georgia, serif;
@@ -43,4 +51,26 @@
 
 @media (max-width: 1023px) {
   :root { --pad: 20px; --gap: 32px; }
+}
+
+/* Night mode: ink and paper swap; the accent lightens to keep contrast; the board goes mid-tone so both
+   piece colors stay readable. Set by the theme button (saved) or by the system when nothing is saved. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #0e0e10;
+  --ink: #f2f2f2;
+  --muted: #1a1a1d;
+  --ink-muted: #a3a3a3;        /* 7.9:1 on paper */
+  --hairline-color: #2b2b30;
+  --accent-wash: #23254a;
+  --accent-soft: #6e74c6;      /* eval-bar swing */
+  --accent-mid: #5a60b0;
+  --accent: #8f95ff;           /* 7.1:1 on paper */
+  --tint: #23254a;             /* dark wash, so light ink stays readable on it */
+  --sq-light: #9ea3e3;
+  --sq-dark: #6e74c6;
+  --board-mark: #ffffff;       /* indigo marks vanish on indigo squares at night; white doesn't */
+  --coord-light: #2b2e6a;
+  --coord-dark: #eceeff;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%23f2f2f2' stroke-width='1.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }

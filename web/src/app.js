@@ -33,6 +33,47 @@ export function poolSize() {
   return Math.max(1, Math.min(cores - 1, 8));
 }
 
+/**
+ * Fit each hero line to the stage width, then shrink all of them together if the block is taller than
+ * the room between the label and the rule. Runs on load, when fonts arrive and on resize.
+ */
+function fitHero() {
+  const h1 = $("hero-title"), hero = h1?.closest(".hero");
+  if (!h1 || !hero.offsetParent) return;
+  const lines = [...h1.querySelectorAll(".fit")];
+  const width = h1.clientWidth;
+  for (const line of lines) {
+    line.style.fontSize = "100px";
+    line.style.fontSize = `${(100 * width) / line.scrollWidth}px`;
+  }
+  const others = [...hero.children].reduce((sum, el) => sum + (el.contains(h1) ? 0 : el.offsetHeight), 0);
+  const label = h1.previousElementSibling?.offsetHeight || 0;
+  const room = hero.clientHeight - others - label - 24;
+  if (h1.offsetHeight > room && room > 0) {
+    const k = room / h1.offsetHeight;
+    for (const line of lines) line.style.fontSize = `${parseFloat(line.style.fontSize) * k}px`;
+  }
+}
+
+/** One button flips paper and ink. The choice is saved; with none saved the system setting applies. */
+function setupTheme() {
+  const btn = $("btn-theme");
+  const paint = () => {
+    const dark = document.documentElement.dataset.theme === "dark";
+    btn.setAttribute("aria-pressed", String(dark));
+    $("theme-label").textContent = dark ? "Day" : "Night";
+    btn.title = dark ? "Switch to day mode" : "Switch to night mode";
+    document.querySelector('meta[name="theme-color"]').content = dark ? "#0e0e10" : "#ffffff";
+  };
+  btn.addEventListener("click", () => {
+    const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("theme", next); } catch {}
+    paint();
+  });
+  paint();
+}
+
 async function openStore() {
   try { return await IdbStore.open(); } catch { return new MemoryStore(); }
 }
@@ -107,6 +148,10 @@ async function start(store, trainer, username, rangeValue, timeClasses) {
 }
 
 async function main() {
+  setupTheme();
+  fitHero();
+  document.fonts?.ready.then(fitHero);
+  new ResizeObserver(fitHero).observe(document.querySelector(".stage"));
   const store = await openStore();
   const trainer = new Trainer({
     board: $("board"), arrows: $("arrows"), meta: $("meta"), playedLabel: $("played-label"), played: $("played"), question: $("question"),

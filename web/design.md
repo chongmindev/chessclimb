@@ -67,6 +67,24 @@ On a desktop (1024px wide and 700px tall or more) the whole app fits the window 
 The accent never carries meaning alone: active chips also show their count, the key card is labelled,
 and right/wrong is a word plus inversion/frame and a solid/dashed arrow.
 
+## Night mode
+
+One button in the bar ("Night" / "Day") swaps the theme; the choice is saved in the browser, and with
+none saved the system setting decides. An inline script in `<head>` applies it before first paint.
+
+Components never name a color directly: they use `--paper` and `--ink` (which swap), `--tint` for
+interface washes, `--sq-light` / `--sq-dark` for the board, `--board-mark` for marks on the board, and
+`--coord-light` / `--coord-dark` for coordinates. Night values:
+
+| Token | Day | Night | Why |
+|---|---|---|---|
+| `--paper` / `--ink` | `#fff` / `#000` | `#0e0e10` / `#f2f2f2` | the swap; the inverted counter band becomes light |
+| `--ink-muted` | `#525252` | `#a3a3a3` | 7.9:1 on night paper |
+| `--accent` | `#5a5fd6` | `#8f95ff` | lighter, 7.1:1 on night paper |
+| `--tint` | `#eef0fd` | `#23254a` | a light wash under light night ink would be unreadable |
+| `--sq-light` / `--sq-dark` | `#eef0fd` / `#c5c9f4` | `#9ea3e3` / `#6e74c6` | mid-tone at night so both piece colors read |
+| `--board-mark` | `--accent` | `#ffffff` | indigo marks vanish on indigo squares |
+
 ## Lines
 
 | Token | Weight | Used for |
@@ -79,6 +97,8 @@ and right/wrong is a word plus inversion/frame and a solid/dashed arrow.
 
 ## Type
 
+- The hero's three lines are each fitted to the stage width by `fitHero()` in `app.js` (and shrunk together
+  if the block is too tall), so *before* (bold italic, accent) becomes the graphic word that fills the square.
 - **Playfair Display** for display: wordmark (italic), hero, prompt, counters, feedback headings
   (italic), step numbers in "How it works".
 - **Source Serif 4** for prose.

@@ -6,6 +6,13 @@
 <title>Threat Scan</title>
 <meta name="description" content="Drill the positions from your own Chess.com games where your opponent could punish your move.">
 <meta name="theme-color" content="#ffffff">
+<script>
+  // Apply the saved theme (or the system's) before first paint, so the page never flashes.
+  try {
+    const t = localStorage.getItem("theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.dataset.theme = t;
+  } catch { document.documentElement.dataset.theme = "light"; }
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
@@ -19,6 +26,8 @@
 <!-- Icons: lucide (ISC), inlined as a sprite, stroke 1.5. -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-next" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
 </svg>
 
 <div class="app">
@@ -29,6 +38,11 @@
         <button class="btn ghost" id="btn-export" type="button">Export</button>
         <label class="btn ghost" for="file-import">Import<input class="visually-hidden" type="file" id="file-import" accept="application/json"></label>
       </nav>
+      <button class="theme-btn" id="btn-theme" type="button" aria-pressed="false">
+        <svg class="icon moon" aria-hidden="true"><use href="#i-moon"/></svg>
+        <svg class="icon sun" aria-hidden="true"><use href="#i-sun"/></svg>
+        <span id="theme-label">Night</span>
+      </button>
       <div class="status-chip" aria-live="polite">
         <span class="mark" id="led" data-state="idle"></span>
         <span class="label" id="led-label">Standby</span>
@@ -41,7 +55,7 @@
       <div class="hero">
         <div>
           <p class="label">Blunder-check trainer</p>
-          <h1>See their reply <em>before</em> you move.</h1>
+          <h1 id="hero-title"><span class="fit">See their reply</span><span class="fit em">before</span><span class="fit">you move.</span></h1>
         </div>
         <div>
           <div class="hero-rule" aria-hidden="true"></div>
