@@ -36,8 +36,12 @@ is lost. Rejected: shipping the screened deck alone (2–3% of threats missed ev
 Lite (browser) vs. native full, both depth 13, on 107 games: full 170 threats, lite 152, both 134
 (recall 79%, precision 88%). On all 134 shared threats lite's reply is one full accepts. The
 disagreements sit at the thresholds: swings near 2.5 pawns, "before" evals near −3, and perpetual
-checks full sees and lite doesn't at depth 13. A noise baseline (full 1 thread vs. full 4 threads) is
-being measured to tell engine noise from lite weakness.
+checks full sees and lite doesn't at depth 13.
+
+Noise baseline: the same full engine with 1 thread instead of 4 agrees on only 149 of 170 threats
+(recall 88%, precision 90%), and its replies are always accepted too. So about 12 points of
+disagreement are engine noise at these thresholds, and lite costs about 9 more. Accepted: it is free,
+runs on the visitor's machine, and never disagrees about the punishing reply itself.
 
 ## 2026-10-15 · Chess.com games are parsed from TCN, not PGN
 
