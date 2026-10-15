@@ -1,7 +1,7 @@
 # Design: Minimalist Monochrome, one indigo accent
 
 An analysis tool should read like a printed analysis: black ink, white paper, serif type, ruled lines.
-Threat Scan is styled as an editorial chess page with a single pastel-indigo accent. The accent is
+Cracktics is styled as an editorial chess page with a single pastel-indigo accent. The accent is
 where the eye should go: the board, the move you played, the scan chips you switch on, the reply that
 punishes you, and progress. Everything else is black and white, and every state is also said in words
 or shape, never by color alone.
@@ -43,6 +43,7 @@ On a desktop (1024px wide and 700px tall or more) the whole app fits the window 
 
 - The stage is a square of about 90% of the available height (capped at 52% of the width), centered; the
   layout is capped at 1280px so the page doesn't sprawl.
+- On the intro screen the form and how-it-works are centered vertically between the bar and the footer.
 - Views on `body[data-view]`: `intro` shows the hero and "How it works"; `waiting` shows the hero and
   a waiting line; `drill` swaps the hero for the board and shows counters and the drill.
 - Once a deck exists, the form collapses to one summary line ("Dudacio · rapid · 2 mo  CHANGE").
@@ -127,6 +128,7 @@ interface washes, `--sq-light` / `--sq-dark` for the board, `--board-mark` for m
 | Bar | `.bar` | 56px, wordmark left, links and status right, 4px rule below |
 | Status mark | `.mark` | 10px square: hollow idle, filled ready, blinking (steps, not fades) while working |
 | Input | `.input` | 2px underline only; 4px on focus; italic serif placeholder |
+| Dropdown | `.dropdown` (`src/select.js`) | custom: an underlined button like the inputs and a 2px-framed list; optgroups as mono headings; the active row gets `--tint`, the chosen one an accent square; full keyboard support; the hidden native `<select>` stays the source of truth |
 | Time-control chip | `.toggle` | separate filter chips with a leading check box (the standard multi-select cue; joined boxes read as pick-one); hover = accent wash and outline; checked = filled accent tick and 2px border |
 | Button | `.btn`, `.btn.primary`, `.btn.ghost` | 2px border, mono caps; hover inverts instantly |
 | Progress | `.meter` | 4px track filling with `--accent` |
@@ -141,7 +143,7 @@ interface washes, `--sq-light` / `--sq-dark` for the board, `--board-mark` for m
 | Game link | `.game-link` | the underline never grows; the ↗ arrow nudges up-right on hover |
 | Move card | `.card`, `.card.key`, `.card.struck`, `.card.miss` | their best reply in accent; what you played struck through; your wrong try struck and grayed |
 | Eval bar | `.evalbar` | −6 to +6 pawns, zero tick, hollow square before your move, filled after, accent span between |
-| How it works | `.how` | three columns: accent number, one word, one mono line |
+| How it works | `.how` | three columns: accent number, one word, one mono line that never wraps |
 
 ## Texture
 

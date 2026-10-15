@@ -1,4 +1,6 @@
-# Threat Scan
+# Cracktics
+
+*(The Python package and command are still called `threatscan`.)*
 
 Most chess trainers drill finding *your own* winning tactic. This one drills the other half of a blunder
 check: **after my move, what can my opponent do to me?**

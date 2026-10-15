@@ -1,4 +1,4 @@
-# Threat Scan for anyone: in-browser design
+# Cracktics for anyone: in-browser design
 
 Status: being built (2026-10-15). Measurements and choices are in `docs/decisions.md`.
 

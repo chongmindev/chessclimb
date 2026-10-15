@@ -1,4 +1,4 @@
-# Threat Scan — project handoff
+# Cracktics — project handoff
 
 Read this first. It explains what already exists, what we learned, and what to build next.
 

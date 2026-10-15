@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Threat Scan</title>
+<title>Cracktics</title>
 <meta name="description" content="Drill the positions from your own Chess.com games where your opponent could punish your move.">
 <meta name="theme-color" content="#ffffff">
 <script>
@@ -32,7 +32,7 @@
 
 <div class="app">
   <header class="bar">
-    <span class="wordmark">Threat Scan</span>
+    <span class="wordmark">Cracktics</span>
     <div class="bar-right">
       <nav class="bar-links" aria-label="Progress">
         <button class="btn ghost" id="btn-export" type="button">Export</button>
@@ -80,7 +80,7 @@
               <input class="input" type="text" id="username" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="your username" required>
             </label>
             <label class="field"><span class="label">Games</span>
-              <select class="input" id="range">
+              <select id="range">
                 <optgroup label="Most recent">
                   <option value="g25">Last 25</option>
                   <option value="g50" selected>Last 50</option>
@@ -101,7 +101,7 @@
           </div>
           <div class="form-row tc" style="margin-top:14px">
             <fieldset class="toggles">
-              <legend class="label">Time controls · pick any</legend>
+              <legend class="visually-hidden">Time controls</legend>
               <label class="toggle"><input type="checkbox" name="tc" value="rapid" checked><span><i class="tick" aria-hidden="true"></i>Rapid</span></label>
               <label class="toggle"><input type="checkbox" name="tc" value="blitz"><span><i class="tick" aria-hidden="true"></i>Blitz</span></label>
               <label class="toggle"><input type="checkbox" name="tc" value="bullet"><span><i class="tick" aria-hidden="true"></i>Bullet</span></label>
@@ -115,7 +115,7 @@
 
       <ol class="how" aria-label="How it works">
         <li><h2>Fetch</h2><span class="label">Finished games only</span></li>
-        <li><h2>Scan</h2><span class="label">Stockfish, locally</span></li>
+        <li><h2>Scan</h2><span class="label">With Stockfish</span></li>
         <li><h2>Drill</h2><span class="label">Find the punishment</span></li>
       </ol>
 

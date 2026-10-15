@@ -3,6 +3,7 @@
 import { ChessCom } from "./chesscom.js";
 import { EnginePool, Evaluator } from "./evals.js";
 import { Scan } from "./scan.js";
+import { Select } from "./select.js";
 import { IdbStore, MemoryStore } from "./store.js";
 import { Trainer } from "./trainer.js";
 import { UciEngine } from "./uci.js";
@@ -149,6 +150,7 @@ async function start(store, trainer, username, rangeValue, timeClasses) {
 
 async function main() {
   setupTheme();
+  const range = new Select($("range"));
   fitHero();
   document.fonts?.ready.then(fitHero);
   new ResizeObserver(fitHero).observe(document.querySelector(".stage"));
@@ -166,7 +168,7 @@ async function main() {
     $("username").value = last.username;
     // Older saves stored months; map them to the nearest time span.
     const saved = last.range || { 1: "d30", 2: "d90", 3: "d90", 6: "d182" }[last.months] || "g50";
-    if ([...$("range").options].some((o) => o.value === saved)) $("range").value = saved;
+    if ([...$("range").options].some((o) => o.value === saved)) { $("range").value = saved; range.sync(); }
     for (const box of document.querySelectorAll("input[name=tc]")) box.checked = last.timeClasses.includes(box.value);
   }
   $("btn-change").addEventListener("click", () => { $("start").classList.add("open"); $("username").focus(); });
@@ -183,7 +185,7 @@ async function main() {
     const data = { username, progress: await store.get(`progress|${username}`) };
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
-    a.download = `threat-scan-progress-${username}.json`;
+    a.download = `cracktics-progress-${username}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   });
