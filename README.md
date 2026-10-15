@@ -1,7 +1,5 @@
 # Cracktics
 
-*(The Python package and command are still called `threatscan`.)*
-
 Most chess trainers drill finding *your own* winning tactic. This one drills the other half of a blunder
 check: **after my move, what can my opponent do to me?**
 
@@ -30,17 +28,17 @@ uv sync
 
 ```
 # 1. Finished games from the Chess.com archives (rapid, last two monthly archives by default)
-uv run threatscan fetch <username> data/games.pgn [--months 2] [--time-class rapid|blitz|bullet|daily|all]
+uv run cracktics fetch <username> data/games.pgn [--months 2] [--time-class rapid|blitz|bullet|daily|all]
 
 # 2. Drill positions (both colors by default)
-uv run threatscan drills data/games.pgn data/items.json --user <username> [--color white|black|both]
+uv run cracktics drills data/games.pgn data/items.json --user <username> [--color white|black|both]
 
 # 3. Bake them into the trainer, then open it in a browser
-uv run threatscan page data/items.json trainer/trainer_template.html trainer/threat-scan-drill.html
-open trainer/threat-scan-drill.html
+uv run cracktics page data/items.json trainer/trainer_template.html trainer/cracktics-drill.html
+open trainer/cracktics-drill.html
 
 # Optional: per-game engine report (centipawn loss, hung pieces, missed and allowed mates)
-uv run threatscan report data/games.pgn data/analysis.json --user <username>
+uv run cracktics report data/games.pgn data/analysis.json --user <username>
 ```
 
 The first run is slow: Stockfish evaluates every position in every game (about 30 minutes for 100 rapid
@@ -63,7 +61,7 @@ Engine tools run as background jobs: the first call starts the work and returns 
 again with the same arguments returns the result once it is done.
 
 - **Claude Code:** `.mcp.json` in this folder registers the server automatically.
-- **Other clients:** run `uv run --directory /path/to/this/repo threatscan-mcp` over stdio.
+- **Other clients:** run `uv run --directory /path/to/this/repo cracktics-mcp` over stdio.
 
 ## Configuration
 
@@ -79,7 +77,7 @@ games; this tool is for reviewing them afterwards.
 
 ## Privacy
 
-Your games, engine cache, reports and built trainer stay in `data/` and `trainer/threat-scan-drill.html`,
+Your games, engine cache, reports and built trainer stay in `data/` and `trainer/cracktics-drill.html`,
 which are gitignored.
 
 ## Development

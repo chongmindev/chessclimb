@@ -1,5 +1,5 @@
 // A UCI engine over any line transport (a Web Worker in the browser, a child process in Node).
-// Returns Lines in the same shape and scoring as threatscan/engine.py.
+// Returns Lines in the same shape and scoring as cracktics/engine.py.
 
 import { Chess } from "chess.js";
 import { isGameOver } from "./rules.js";

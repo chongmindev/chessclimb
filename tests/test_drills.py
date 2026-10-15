@@ -5,10 +5,10 @@ import shutil
 import chess
 import pytest
 
-from threatscan import config
-from threatscan.drills import Ply, build_items, item_id, safe_item, threat_item, walk
-from threatscan.engine import Engine, Line
-from threatscan.games import Game, read_games
+from cracktics import config
+from cracktics.drills import Ply, build_items, item_id, safe_item, threat_item, walk
+from cracktics.engine import Engine, Line
+from cracktics.games import Game, read_games
 
 CFG = config.load()
 D, CAP = CFG.drills, CFG.engine.eval_cap
@@ -188,5 +188,5 @@ def test_safe_sampling_does_not_depend_on_game_order():
 
 
 def test_pawns_rounds_halves_away_from_zero():
-    from threatscan.drills import pawns
+    from cracktics.drills import pawns
     assert [pawns(v) for v in (25, 15, 45, -25, -24, 0, 1980, -2000)] == [0.3, 0.2, 0.5, -0.3, -0.2, 0.0, 19.8, -20.0]

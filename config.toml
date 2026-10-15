@@ -10,7 +10,7 @@ eval_cap = 2000           # evals are clamped to +/- this before comparing
 
 [fetch]
 base_url = "https://api.chess.com/pub"
-user_agent = "threatscan/0.1 (+https://github.com/chongmindev/chessclimb)"  # add contact info here
+user_agent = "cracktics/0.1 (+https://github.com/chongmindev/chessclimb)"  # add contact info here
 cache = "data/chesscom_cache"
 min_interval = 1.0        # seconds between requests (Chess.com asks for serial, unhurried access)
 timeout = 30

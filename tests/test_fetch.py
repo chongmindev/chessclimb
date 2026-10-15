@@ -2,8 +2,8 @@ import json
 from dataclasses import replace
 from datetime import datetime, timezone
 
-from threatscan import config
-from threatscan.fetch import ChessCom, to_pgn
+from cracktics import config
+from cracktics.fetch import ChessCom, to_pgn
 
 BASE = "https://api.chess.com/pub/player/dudacio/games"
 NOW = datetime(2026, 10, 14, tzinfo=timezone.utc)

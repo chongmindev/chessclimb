@@ -19,9 +19,9 @@ from pathlib import Path
 
 import chess
 
-from threatscan import config
-from threatscan.drills import item_id, sample_key
-from threatscan.games import read_games
+from cracktics import config
+from cracktics.drills import item_id, sample_key
+from cracktics.games import read_games
 
 from measure_lite import LiteEngine
 

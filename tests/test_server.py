@@ -7,13 +7,13 @@ from datetime import datetime, timezone
 import chess
 import pytest
 
-from threatscan import config
-from threatscan.engine import Line
-from threatscan.fetch import ChessCom
-from threatscan.jobs import Jobs
-from threatscan.server import create_server
-from threatscan.service import Service
-from threatscan.summary import summarize
+from cracktics import config
+from cracktics.engine import Line
+from cracktics.fetch import ChessCom
+from cracktics.jobs import Jobs
+from cracktics.server import create_server
+from cracktics.service import Service
+from cracktics.summary import summarize
 
 CFG = config.load()
 BASE = "https://api.chess.com/pub/player/me/games"

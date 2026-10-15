@@ -15,10 +15,10 @@ from pathlib import Path
 
 import chess.engine
 
-from threatscan import config
-from threatscan.drills import build_items
-from threatscan.engine import Engine
-from threatscan.games import read_games
+from cracktics import config
+from cracktics.drills import build_items
+from cracktics.engine import Engine
+from cracktics.games import read_games
 
 ROOT = Path(__file__).resolve().parent.parent
 LITE = ROOT / "web/node_modules/stockfish/bin/stockfish-19-lite-single.js"
@@ -36,7 +36,7 @@ class NativeOneThread(Engine):
     """Noise baseline: the native full engine with 1 thread, against the usual 4-thread deck."""
     def _engine(self):
         if self._uci is None:
-            from threatscan.engine import find_stockfish
+            from cracktics.engine import find_stockfish
             self._uci = chess.engine.SimpleEngine.popen_uci(find_stockfish(self.cfg.path))
             self._uci.configure({"Threads": 1, "Hash": 64})
         return self._uci

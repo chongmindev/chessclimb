@@ -3,6 +3,6 @@ data/
 __pycache__/
 *.pyc
 .pytest_cache/
-trainer/threat-scan-drill.html
+trainer/cracktics-drill.html
 web/node_modules/
 web/dist/

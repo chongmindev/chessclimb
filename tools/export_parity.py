@@ -14,10 +14,10 @@ from pathlib import Path
 
 import chess
 
-from threatscan import config
-from threatscan.drills import build_items
-from threatscan.engine import Engine
-from threatscan.games import read_games
+from cracktics import config
+from cracktics.drills import build_items
+from cracktics.engine import Engine
+from cracktics.games import read_games
 
 ROOT = Path(__file__).resolve().parent.parent
 

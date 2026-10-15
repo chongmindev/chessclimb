@@ -1,5 +1,5 @@
 [project]
-name = "threatscan"
+name = "cracktics"
 version = "0.1.0"
 description = "Drill the defensive scan: what can my opponent do after my move?"
 requires-python = ">=3.12"
@@ -9,8 +9,8 @@ dependencies = [
 ]
 
 [project.scripts]
-threatscan = "threatscan.cli:main"
-threatscan-mcp = "threatscan.server:main"
+cracktics = "cracktics.cli:main"
+cracktics-mcp = "cracktics.server:main"
 
 [dependency-groups]
 dev = ["pytest>=8"]

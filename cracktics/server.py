@@ -17,7 +17,7 @@ TimeClass = Literal["bullet", "blitz", "rapid", "daily", "all"]
 
 def create_server(service: Service | None = None) -> MCPServer:
     svc = service or Service(config.load())
-    mcp = MCPServer("threatscan", instructions=(
+    mcp = MCPServer("cracktics", instructions=(
         "Analyses a player's FINISHED Chess.com games with Stockfish. Engine tools (analyze_games, "
         "get_drill_positions, summary) start a background job and return progress; call them again "
         "with the same arguments until status is 'done'. months = most recent monthly archives; "
@@ -38,7 +38,7 @@ def create_server(service: Service | None = None) -> MCPServer:
     @mcp.tool()
     def get_drill_positions(username: str, months: int | None = None, color: Color = "both",
                             time_classes: list[TimeClass] | None = None) -> dict:
-        """Threat-scan drill items: positions right after the player's move, opponent to move."""
+        """Cracktics drill items: positions right after the player's move, opponent to move."""
         return svc.get_drill_positions(username, months, color, time_classes)
 
     @mcp.tool()

@@ -20,16 +20,48 @@ export class MemoryStore {
 }
 
 const STORES = ["evals", "archives", "candidates", "kv"];
+const LEGACY_NAME = "threatscan";   // the database name before the app was called Cracktics
 
 export class IdbStore {
-  static async open(name = "threatscan", version = 1) {
+  static async open(name = "cracktics", version = 1) {
+    let created = false;
     const db = await new Promise((resolve, reject) => {
       const req = indexedDB.open(name, version);
-      req.onupgradeneeded = () => { for (const s of STORES) if (!req.result.objectStoreNames.contains(s)) req.result.createObjectStore(s); };
+      req.onupgradeneeded = () => {
+        created = req.result.objectStoreNames.length === 0;
+        for (const s of STORES) if (!req.result.objectStoreNames.contains(s)) req.result.createObjectStore(s);
+      };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
-    return new IdbStore(db);
+    const store = new IdbStore(db);
+    if (created) await store.migrateFrom(LEGACY_NAME);
+    return store;
+  }
+
+  /** One-time copy from the database used before the rename, so cached scans and progress survive. */
+  async migrateFrom(oldName) {
+    const names = (await indexedDB.databases?.()) ?? [];
+    if (!names.some((d) => d.name === oldName)) return;
+    const old = await new Promise((resolve, reject) => {
+      const req = indexedDB.open(oldName);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    try {
+      for (const s of STORES) {
+        if (!old.objectStoreNames.contains(s)) continue;
+        const rows = await new Promise((resolve, reject) => {
+          const out = [];
+          const req = old.transaction(s, "readonly").objectStore(s).openCursor();
+          req.onsuccess = () => { const c = req.result; if (!c) return resolve(out); out.push([c.key, c.value]); c.continue(); };
+          req.onerror = () => reject(req.error);
+        });
+        await this._req(s, "readwrite", (st) => { for (const [k, v] of rows) st.put(v, k); });
+      }
+    } finally {
+      old.close();
+    }
   }
 
   constructor(db) { this.db = db; }

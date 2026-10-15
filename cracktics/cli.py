@@ -1,4 +1,4 @@
-"""threatscan fetch|report|drills|page — the pipeline from a PGN file to the trainer page."""
+"""cracktics fetch|report|drills|page — the pipeline from a PGN file to the trainer page."""
 from __future__ import annotations
 
 import argparse
@@ -20,7 +20,7 @@ COLORS = {"white": chess.WHITE, "black": chess.BLACK, "both": None}
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="threatscan")
+    ap = argparse.ArgumentParser(prog="cracktics")
     ap.add_argument("--config", help="path to config.toml")
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name in ("report", "drills"):

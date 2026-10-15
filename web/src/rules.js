@@ -1,4 +1,4 @@
-// Drill selection, ported from threatscan/drills.py. Must stay in step with it: the parity test
+// Drill selection, ported from cracktics/drills.py. Must stay in step with it: the parity test
 // (web/test/parity.test.js) runs both on the same recorded evals and requires identical items.
 //
 // An eval Line is {move: uci|null, cp: int (White's view, mates folded in), mate: int|null (White's view)}.

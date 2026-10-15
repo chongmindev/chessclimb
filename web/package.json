@@ -1,5 +1,5 @@
 {
-  "name": "threatscan-web",
+  "name": "cracktics-web",
   "private": true,
   "type": "module",
   "dependencies": {

@@ -1,4 +1,4 @@
-// Finished games from the Chess.com Published Data API, in the browser. Mirrors threatscan/fetch.py.
+// Finished games from the Chess.com Published Data API, in the browser. Mirrors cracktics/fetch.py.
 // Fair play: only the monthly archives (finished games). Never /games or /games/to-move.
 
 import { gameFromChessCom } from "./games.js";

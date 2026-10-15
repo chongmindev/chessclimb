@@ -9,7 +9,7 @@ import sys
 from dataclasses import asdict
 from pathlib import Path
 
-from threatscan import config
+from cracktics import config
 
 OUT = Path(__file__).resolve().parent.parent / "web/src/config.json"
 

@@ -61,7 +61,7 @@ export class Scan {
           this.byGame.set(key, c);
         } catch (e) {
           // One bad game must not stop the scan. It isn't stored, so it is retried next visit.
-          console.error(`threatscan: skipped game ${key}`, e);
+          console.error(`cracktics: skipped game ${key}`, e);
           this.failed.push(key);
         }
         this._emit(pending.length > 0);

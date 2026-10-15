@@ -1,4 +1,4 @@
-// Chess.com games to the shape rules.js walks. Mirrors threatscan/games.py (read_games, Game).
+// Chess.com games to the shape rules.js walks. Mirrors cracktics/games.py (read_games, Game).
 
 import { Chess } from "chess.js";
 
