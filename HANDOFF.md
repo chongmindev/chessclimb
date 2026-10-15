@@ -15,44 +15,41 @@ The project has two parts:
 2. **Front end (trainer):** shows each position right after my move and asks me to find White's
    punishing reply, or confirm the move was safe. Uses spaced repetition.
 
-## What exists already (prototype)
+## What exists
 
 ```
-analysis/
-  analyze_games.py          # PGN -> per-game error report (analysis.json)
-  build_drill_positions.py  # PGN -> drill positions (items.json)
-  build_page.py             # items.json + template -> standalone trainer HTML
+threatscan/          # package: config, engine (SQLite eval cache), games, report, drills, page, cli
+config.toml          # every depth and threshold
+tests/               # selection rules on fake evals + known positions on the real engine
 trainer/
-  trainer_template.html     # single-file trainer, __ITEMS__ placeholder
-  threat-scan-drill.html    # built version with my 108 positions
-data/
-  chess_com_games_2026-10-14.pgn  # last 50 games as Black (username: Dudacio)
-  analysis.json                   # engine report per game
-  items.json                      # 108 drill positions (67 threat, 41 safe)
+  trainer_template.html     # single-file trainer, __ITEMS__ placeholder (either color)
+data/                       # gitignored: PGNs, engine cache, reports, items
 ```
 
-Rebuild from scratch:
+Rebuild (Stockfish on PATH, or `export STOCKFISH=/path`):
 ```
-pip install "chess==1.10.0"        # newer versions failed to build a wheel in my env
-export STOCKFISH=/path/to/stockfish  # Stockfish 17 binary
-python analysis/analyze_games.py data/chess_com_games_2026-10-14.pgn data/analysis.json
-python analysis/build_drill_positions.py data/chess_com_games_2026-10-14.pgn data/items.json
-python analysis/build_page.py data/items.json trainer/trainer_template.html trainer/threat-scan-drill.html
+uv sync
+uv run threatscan report data/<games>.pgn data/analysis.json --user Dudacio
+uv run threatscan drills data/<games>.pgn data/items.json --user Dudacio [--color white|black|both]
+uv run threatscan page data/items.json trainer/trainer_template.html trainer/threat-scan-drill.html
+uv run pytest
 ```
+Engine evals are cached by (FEN, depth, MultiPV) in `data/engine_cache.sqlite`, so reruns are fast.
+Item ids are a hash of FEN + move, so trainer progress survives rebuilds.
 
 ### How positions are chosen
-- **Threat item:** my move (Black) lost >= 2.5 pawns at depth 13, the position wasn't already lost
-  (eval before > -3), and White's best reply is a check or capture. Accepted answers = White moves
+- **Threat item:** my move lost >= 2.5 pawns at depth 13, the position wasn't already lost
+  (eval before > -3), and the opponent's best reply is a check or capture. Accepted answers = opponent moves
   from MultiPV 5 within 0.8 pawns of the best and still winning >= 2 pawns vs. before.
 - **Safe item:** move 8+, my move lost <= 0.25 pawns, eval after between -1.5 and +4 for me, and
-  White's best reply gains < 1.5. Sampled to about 60% of the threat count.
-- Item fields: `fen` (White to move), `from`/`to` (my move), `san`, `move`, `opp`, `date`,
-  `result`, `kind`, plus `accept`, `accept_san`, `reply`, `mate`, `better`, `swing`, `evb`, `eva`.
+  the opponent's eval after their best reply stays < 1.5. Sampled to about 60% of the threat count.
+- Item fields: `id`, `color` (my side), `fen` (opponent to move), `from`/`to` (my move), `san`, `move`, `opp`, `date`,
+  `result` (win/loss/draw for me), `kind`, plus `accept`, `accept_san`, `reply`, `mate`, `better`, `swing`, `evb`, `eva`.
 
 ### Trainer behavior
-- Board flipped (Black at bottom), Unicode pieces via Noto Sans Symbols 2, chess.js 0.10.3 for
+- Board oriented with my side at the bottom, Unicode pieces via Noto Sans Symbols 2, chess.js 0.10.3 for
   legal moves.
-- "Show checks & captures" highlights every White check/capture.
+- "Show checks & captures" highlights every opponent check/capture.
 - Leitner boxes 1–5, stored in localStorage (per browser only).
 
 ## What I learned from the 50 games (context for priorities)
@@ -65,8 +62,7 @@ python analysis/build_page.py data/items.json trainer/trainer_template.html trai
 
 ## What to build next (in order)
 
-1. **Clean up the pipeline into a package** (`threatscan/`), with typed config (depth, thresholds),
-   caching of engine evals by FEN, and tests for item selection on a few known positions.
+1. ~~Clean up the pipeline into a package~~ (done 2026-10-14).
 2. **Chess.com fetch:** use the public Published Data API (no auth): monthly archives →
    PGNs for a username. Respect rate limits; set a User-Agent with contact info.
 3. **MCP server** exposing:

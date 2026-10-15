@@ -82,7 +82,7 @@ button.b.primary{background:var(--accent);border-color:var(--accent);color:#fff}
   <header>
     <div>
       <h1>Threat Scan Drill</h1>
-      <p class="sub">Every position is from your own games as Black, right after your move. Find White's punishing reply, or confirm there isn't one.</p>
+      <p class="sub">Every position is from your own games, right after your move. Find your opponent's punishing reply, or confirm there isn't one.</p>
     </div>
     <div class="stats" aria-live="polite">
       <div><b id="st-done">0</b>answered</div>
@@ -94,7 +94,7 @@ button.b.primary{background:var(--accent);border-color:var(--accent);color:#fff}
   <div class="main">
     <div>
       <div class="boardbox">
-        <div class="board" id="board" role="grid" aria-label="Chess board, Black at the bottom"></div>
+        <div class="board" id="board" role="grid" aria-label="Chess board"></div>
         <svg class="arrows" id="arrows" viewBox="0 0 8 8" aria-hidden="true"></svg>
       </div>
     </div>
@@ -103,13 +103,13 @@ button.b.primary{background:var(--accent);border-color:var(--accent);color:#fff}
       <div class="meta" id="meta"></div>
       <p class="prompt" id="prompt"></p>
       <ol class="steps" id="steps">
-        <li>List every White check.</li>
-        <li>List every White capture.</li>
+        <li>List every check your opponent has.</li>
+        <li>List every capture your opponent has.</li>
         <li>Ask what's newly loose after your move.</li>
       </ol>
       <div class="btns" id="actions">
         <button class="b" id="btn-hint" type="button">Show checks &amp; captures</button>
-        <button class="b" id="btn-safe" type="button">Nothing works for White</button>
+        <button class="b" id="btn-safe" type="button">Nothing works for them</button>
       </div>
       <div id="feedback"></div>
       <div class="btns"><button class="b primary" id="btn-next" type="button" hidden>Next position</button></div>
@@ -142,10 +142,13 @@ function pick(){
   return low[Math.floor(Math.random()*low.length)];
 }
 
-function sqName(r,c){ // Black at bottom: row 0 = rank 1, col 0 = file h
-  return FILES[7-c]+(r+1);
+const meW=()=>(cur.color||"b")==="w";     // my side; items without a color are from the Black-only prototype
+const OPP=()=>meW()?"Black":"White";
+function lbl(n,white,san){return `<span class="mv">${n}${white?".":"…"}${san}</span>`}
+function sqName(r,c){ // row 0 is the top row; my side is at the bottom
+  return meW()? FILES[c]+(8-r) : FILES[7-c]+(r+1);
 }
-function xy(sq){const f=FILES.indexOf(sq[0]),r=+sq[1];return [7-f+.5, r-1+.5];}
+function xy(sq){const f=FILES.indexOf(sq[0]),r=+sq[1];return meW()? [f+.5, 8-r+.5] : [7-f+.5, r-1+.5];}
 
 function render(){
   const el=document.getElementById("board"); el.innerHTML="";
@@ -188,7 +191,7 @@ function tap(s){
     const m=game.moves({verbose:true}).find(m=>m.from===sel&&m.to===s);
     if(m){ answer(m); return; }
   }
-  sel=(p&&p.color==="w"&&sel!==s)?s:null;
+  sel=(p&&p.color===game.turn()&&sel!==s)?s:null;
   render();
 }
 
@@ -198,20 +201,20 @@ function answer(m){ // m = verbose move or null for "nothing works"
   answered=true; sel=null;
   const isThreat=cur.kind==="threat";
   let ok, html;
-  const yourMove=`<span class="mv">${cur.move}…${cur.san}</span>`;
+  const yourMove=lbl(cur.move,meW(),cur.san), better=lbl(cur.move,meW(),cur.better);
   if(isThreat){
     ok=!!m && cur.accept.some(u=>u.slice(0,4)===uciOf(m).slice(0,4));
-    const best=`<span class="mv">${cur.move+1}.${cur.reply}</span>`;
+    const best=meW()? lbl(cur.move,false,cur.reply) : lbl(cur.move+1,true,cur.reply);
     const what=cur.mate!=null&&cur.mate>0?`It's mate in ${cur.mate}.`:`That swings the position by about ${cur.swing} pawns (from ${fmt(cur.evb)} to ${fmt(cur.eva)} for you).`;
     const extra=cur.accept_san.length>1?` Also strong: ${cur.accept_san.filter(x=>x!==cur.reply).map(x=>`<span class="mv">${x}</span>`).join(" ")}.`:"";
-    if(ok) html=`<h2>Found it.</h2><p>${m?`<span class="mv">${m.san}</span> punishes ${yourMove}.`:""} ${what}${extra}</p><p>In the game you should have played <span class="mv">${cur.move}…${cur.better}</span> instead.</p>`;
-    else html=`<h2>${m?"Not the one.":"There was a threat."}</h2><p>White's best is ${best}. ${what}${extra}</p><p>Instead of ${yourMove}, the engine wanted <span class="mv">${cur.move}…${cur.better}</span>.</p>`;
+    if(ok) html=`<h2>Found it.</h2><p>${m?`<span class="mv">${m.san}</span> punishes ${yourMove}.`:""} ${what}${extra}</p><p>In the game you should have played ${better} instead.</p>`;
+    else html=`<h2>${m?"Not the one.":"There was a threat."}</h2><p>${OPP()}'s best is ${best}. ${what}${extra}</p><p>Instead of ${yourMove}, the engine wanted ${better}.</p>`;
     const g2=new Chess(cur.fen); const rm=g2.move(cur.reply,{sloppy:true});
     if(rm) drawArrows([[rm.from,rm.to,ok?"--good":"--bad"]]);
   } else {
     ok=!m;
-    if(ok) html=`<h2>Correct, it's safe.</h2><p>${yourMove} doesn't hang anything. White's best try is <span class="mv">${cur.reply}</span>, and the position stays about ${fmt(cur.eva)} for you.</p>`;
-    else html=`<h2>False alarm.</h2><p><span class="mv">${m.san}</span> doesn't win anything here. ${yourMove} was a safe move, and White's best is only <span class="mv">${cur.reply}</span>. Over-worrying costs time on the clock, so it's worth getting these right too.</p>`;
+    if(ok) html=`<h2>Correct, it's safe.</h2><p>${yourMove} doesn't hang anything. ${OPP()}'s best try is <span class="mv">${cur.reply}</span>, and the position stays about ${fmt(cur.eva)} for you.</p>`;
+    else html=`<h2>False alarm.</h2><p><span class="mv">${m.san}</span> doesn't win anything here. ${yourMove} was a safe move, and ${OPP()}'s best is only <span class="mv">${cur.reply}</span>. Over-worrying costs time on the clock, so it's worth getting these right too.</p>`;
     if(m) drawArrows([[m.from,m.to,"--bad"]]);
   }
   // Leitner update
@@ -239,9 +242,11 @@ function paintStats(){
 function next(){
   cur=pick(); game=new Chess(cur.fen); sel=null; answered=false; hintOn=false;
   const [y,mo,d]=cur.date.split("-");
-  const res={"0-1":"you won","1-0":"you lost","1/2-1/2":"draw"}[cur.result];
+  const res={win:"you won",loss:"you lost",draw:"draw","0-1":"you won","1-0":"you lost","1/2-1/2":"draw"}[cur.result]||"";
   document.getElementById("meta").innerHTML=`<span>vs ${cur.opp}</span><span>${mo}/${d}</span><span>move ${cur.move}</span><span>${res}</span>`;
-  document.getElementById("prompt").innerHTML=`You just played <span class="mv">${cur.move}…${cur.san}</span>. White to move. Does White have a move that punishes it?`;
+  document.getElementById("prompt").innerHTML=`You just played ${lbl(cur.move,meW(),cur.san)}. ${OPP()} to move. Does ${OPP()} have a move that punishes it?`;
+  document.getElementById("btn-safe").textContent=`Nothing works for ${OPP()}`;
+  document.getElementById("board").setAttribute("aria-label",`Chess board, ${meW()?"White":"Black"} at the bottom`);
   document.getElementById("feedback").innerHTML="";
   document.getElementById("actions").hidden=false;
   document.getElementById("btn-next").hidden=true;
@@ -252,6 +257,7 @@ document.getElementById("btn-safe").addEventListener("click",()=>{if(!answered)a
 document.getElementById("btn-hint").addEventListener("click",()=>{hintOn=!hintOn;render()});
 document.getElementById("btn-next").addEventListener("click",next);
 const nT=ITEMS.filter(i=>i.kind==="threat").length;
-document.getElementById("foot").textContent=`${ITEMS.length} positions from your last 50 games as Black (Sep 23 – Oct 14): ${nT} where your move lost 2.5+ pawns to a check or capture, and ${ITEMS.length-nT} where your move was safe. Tap a White piece, then its target square, to answer. Progress is saved in this browser only.`;
+document.getElementById("foot").textContent=`${ITEMS.length} positions from your games${span()}: ${nT} where your move lost 2.5+ pawns to a check or capture, and ${ITEMS.length-nT} where your move was safe. Tap one of your opponent's pieces, then its target square, to answer. Progress is saved in this browser only.`;
+function span(){const d=ITEMS.map(i=>i.date).filter(Boolean).sort();if(!d.length)return"";const f=x=>{const[,m,dd]=x.split("-");return `${+m}/${+dd}`};return ` (${f(d[0])} – ${f(d[d.length-1])})`}
 next();
 </script>

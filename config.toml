@@ -1,0 +1,39 @@
+# Thresholds are in centipawns from the player's point of view unless noted.
+
+[engine]
+path = "stockfish"        # overridden by $STOCKFISH
+threads = 4
+hash_mb = 256
+cache = "data/engine_cache.sqlite"
+mate_score = 10000        # a mate is scored as this many centipawns
+eval_cap = 2000           # evals are clamped to +/- this before comparing
+
+[report]
+depth = 14
+error_loss = 100          # a move losing this much is listed as an error
+cpl_cap = 1000            # per-move loss is capped at this in the average centipawn loss
+hung_min_value = 3        # a captured piece worth this many pawns or more counts as hung
+early_queen_moves = 8     # queen moves up to this move number count as early
+missed_win_before = 300
+missed_win_loss = 200
+
+[drills]
+depth = 13
+multipv = 5
+seed = 3
+
+# threat item: my move lost a lot, I wasn't already lost, opponent's best reply is a check or capture
+threat_min_loss = 250
+threat_min_before = -300
+threat_min_move = 3
+accept_within = 80        # accepted replies are within this of the opponent's best...
+accept_min_gain = 200     # ...and still gain this much versus the eval before my move
+
+# safe item: my move cost almost nothing, the position is playable, and the opponent's best reply leaves them at most slightly better
+safe_max_loss = 25
+safe_min_move = 8
+safe_after_min = -150
+safe_after_max = 400
+safe_max_opp_eval = 150  # opponent's eval after their best reply stays below this
+safe_sample_rate = 0.3    # fraction of qualifying safe moves sent to the MultiPV check
+safe_ratio = 0.6          # keep at most this many safe items per threat item
