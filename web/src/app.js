@@ -34,7 +34,7 @@ export function poolSize() {
 }
 
 /**
- * Fit each hero line to the stage width, then shrink all of them together if the block is taller than
+ * Fit each hero line to a share of the stage width (data-fit, default all of it), then shrink all of them together if the block is taller than
  * the room between the label and the rule. Runs on load, when fonts arrive and on resize.
  */
 function fitHero() {
@@ -44,7 +44,7 @@ function fitHero() {
   const width = h1.clientWidth;
   for (const line of lines) {
     line.style.fontSize = "100px";
-    line.style.fontSize = `${(100 * width) / line.scrollWidth}px`;
+    line.style.fontSize = `${(100 * width * Number(line.dataset.fit || 1)) / line.scrollWidth}px`;
   }
   const others = [...hero.children].reduce((sum, el) => sum + (el.contains(h1) ? 0 : el.offsetHeight), 0);
   const label = h1.previousElementSibling?.offsetHeight || 0;
