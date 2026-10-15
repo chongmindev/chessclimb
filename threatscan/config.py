@@ -20,6 +20,19 @@ class EngineConfig:
 
 
 @dataclass(frozen=True)
+class FetchConfig:
+    base_url: str
+    user_agent: str
+    cache: str
+    min_interval: float
+    timeout: int
+    retries: int
+    backoff: float
+    months: int
+    time_classes: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class ReportConfig:
     depth: int
     error_loss: int
@@ -52,6 +65,7 @@ class DrillConfig:
 @dataclass(frozen=True)
 class Config:
     engine: EngineConfig
+    fetch: FetchConfig
     report: ReportConfig
     drills: DrillConfig
 
@@ -70,6 +84,7 @@ def load(path: str | Path | None = None) -> Config:
     engine["path"] = os.environ.get("STOCKFISH", engine["path"])
     return Config(
         engine=_build(EngineConfig, engine, "engine"),
+        fetch=_build(FetchConfig, {**raw["fetch"], "time_classes": tuple(raw["fetch"]["time_classes"])}, "fetch"),
         report=_build(ReportConfig, raw["report"], "report"),
         drills=_build(DrillConfig, raw["drills"], "drills"),
     )

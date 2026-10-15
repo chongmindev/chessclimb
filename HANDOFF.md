@@ -29,6 +29,7 @@ data/                       # gitignored: PGNs, engine cache, reports, items
 Rebuild (Stockfish on PATH, or `export STOCKFISH=/path`):
 ```
 uv sync
+uv run threatscan fetch Dudacio data/games.pgn [--months 2] [--time-class rapid|blitz|bullet|daily|all]
 uv run threatscan report data/<games>.pgn data/analysis.json --user Dudacio
 uv run threatscan drills data/<games>.pgn data/items.json --user Dudacio [--color white|black|both]
 uv run threatscan page data/items.json trainer/trainer_template.html trainer/threat-scan-drill.html
@@ -63,8 +64,8 @@ Item ids are a hash of FEN + move, so trainer progress survives rebuilds.
 ## What to build next (in order)
 
 1. ~~Clean up the pipeline into a package~~ (done 2026-10-14).
-2. **Chess.com fetch:** use the public Published Data API (no auth): monthly archives →
-   PGNs for a username. Respect rate limits; set a User-Agent with contact info.
+2. ~~Chess.com fetch~~ (done 2026-10-14): monthly archives only, serial requests 1 s apart, past months
+   cached in `data/chesscom_cache/`, rapid only by default (`[fetch]` in config.toml).
 3. **MCP server** exposing:
    - `fetch_games(username, months)` — finished games only
    - `analyze_games(username, months, color)` — engine report (like analysis.json)

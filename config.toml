@@ -8,6 +8,17 @@ cache = "data/engine_cache.sqlite"
 mate_score = 10000        # a mate is scored as this many centipawns
 eval_cap = 2000           # evals are clamped to +/- this before comparing
 
+[fetch]
+base_url = "https://api.chess.com/pub"
+user_agent = "threatscan/0.1 (+https://github.com/chongmindev/chessclimb)"  # add contact info here
+cache = "data/chesscom_cache"
+min_interval = 1.0        # seconds between requests (Chess.com asks for serial, unhurried access)
+timeout = 30
+retries = 3               # on HTTP 429
+backoff = 5.0             # seconds, times the attempt number
+months = 2
+time_classes = ["rapid"]  # bullet, blitz, rapid, daily; empty list = all
+
 [report]
 depth = 14
 error_loss = 100          # a move losing this much is listed as an error
