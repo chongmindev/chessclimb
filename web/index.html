@@ -40,12 +40,12 @@
     <div class="stage">
       <div class="hero">
         <div>
-          <p class="label">A defensive scan, drilled on your own games</p>
+          <p class="label">Blunder-check trainer</p>
           <h1>See their reply <em>before</em> you move.</h1>
         </div>
         <div>
           <div class="hero-rule" aria-hidden="true"></div>
-          <p>Every position is from a finished Chess.com game of yours, right after a move you made. <b>Find the reply that punishes it, or confirm there isn't one.</b></p>
+          <p>Your games. Your moves. <b>Their best reply.</b></p>
         </div>
       </div>
       <div class="boardbox">
@@ -89,9 +89,9 @@
       </form>
 
       <ol class="how" aria-label="How it works">
-        <li><div><h2>Your finished games</h2><p>Fetched from Chess.com's public archive. Games in progress are never touched.</p></div></li>
-        <li><div><h2>Every move, checked</h2><p>Stockfish runs in this browser, one engine per core, newest games first. Nothing is uploaded.</p></div></li>
-        <li><div><h2>Drill the punishments</h2><p>Positions where your move let your opponent win material or mate, and safe ones to keep you honest. Misses come back sooner.</p></div></li>
+        <li><h2>Fetch</h2><span class="label">Finished games only</span></li>
+        <li><h2>Scan</h2><span class="label">Stockfish, in this browser</span></li>
+        <li><h2>Drill</h2><span class="label">Find the punishment</span></li>
       </ol>
 
       <div class="status" id="status" hidden aria-live="polite">
@@ -99,7 +99,7 @@
         <div class="meter"><i id="bar"></i></div>
       </div>
 
-      <p class="waiting" id="waiting">Analysing your newest games. The first positions appear in a few seconds.</p>
+      <p class="waiting" id="waiting"><span class="spinner" aria-hidden="true"></span>First positions in a few seconds</p>
 
       <div class="counters" id="trainer">
         <div class="counter"><b id="st-done">0</b><span class="label">Answered</span></div>
@@ -113,23 +113,33 @@
 
       <section class="drill" aria-label="Position">
         <div class="meta" id="meta"></div>
-        <p class="prompt" id="prompt"></p>
-        <ol class="steps" id="steps">
-          <li>Every check your opponent has.</li>
-          <li>Every capture your opponent has.</li>
-          <li>Whatever your move just left loose.</li>
-        </ol>
-        <div class="btns" id="actions">
-          <button class="btn" id="btn-hint" type="button">Show checks &amp; captures</button>
-          <button class="btn" id="btn-safe" type="button"><span id="btn-safe-label">Nothing works for them</span></button>
+        <div class="played">
+          <span class="label">You played</span>
+          <span class="played-move" id="played"></span>
         </div>
+        <p class="question" id="question"></p>
+
+        <div class="scan" id="scan" role="group" aria-label="Scan the board">
+          <span class="label">Scan</span>
+          <button class="chip" type="button" data-kind="checks" aria-pressed="false"><b>?</b>Checks</button>
+          <button class="chip" type="button" data-kind="captures" aria-pressed="false"><b>?</b>Captures</button>
+          <button class="chip" type="button" data-kind="loose" aria-pressed="false"><b>?</b>Loose</button>
+        </div>
+
+        <div class="answer" id="actions">
+          <span class="label">Answer</span>
+          <span class="hint-move">Move their piece on the board</span>
+          <span class="or">or</span>
+          <button class="btn" id="btn-safe" type="button"><span id="btn-safe-label">Nothing works</span></button>
+        </div>
+
         <div id="feedback"></div>
-        <div class="btns"><button class="btn primary" id="btn-next" type="button" hidden>Next position<svg class="icon"><use href="#i-next"/></svg></button></div>
+        <div class="btns"><button class="btn primary" id="btn-next" type="button" hidden>Next<svg class="icon"><use href="#i-next"/></svg></button></div>
         <span class="visually-hidden" id="device-side"></span>
       </section>
 
       <p class="foot label">
-        <span id="import-note">Finished games only · runs in your browser</span>
+        <span id="import-note">Runs in your browser</span>
         <a href="https://github.com/nmrugg/stockfish.js" target="_blank" rel="noopener">Stockfish.js 19 lite, GPLv3</a>
         <a href="https://github.com/chongmindev/chessclimb" target="_blank" rel="noopener">Source</a>
       </p>

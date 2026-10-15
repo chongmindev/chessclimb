@@ -85,10 +85,10 @@ async function start(store, trainer, username, months, timeClasses) {
     const frac = u.total ? u.done / u.total : 1;
     $("bar").style.width = `${Math.round(100 * (u.phase === 1 ? 0.6 * frac : 0.6 + 0.4 * frac))}%`;
     const secs = Math.round((Date.now() - t0) / 1000);
-    const pass = u.phase === 1 ? "Quick pass" : "Deep pass, finding the last few";
+    const pass = u.phase === 1 ? "Quick pass" : "Deep pass";
     $("status-text").textContent = u.running
-      ? `${pass}: game ${Math.min(u.done + 1, u.total)} of ${u.total} · ${u.deck.length} positions (${threats} threats) · ${secs}s · ${pool.size} engines`
-      : `All games analysed · ${u.deck.length} positions (${threats} threats, ${u.deck.length - threats} safe)`;
+      ? `${pass} · ${u.done}/${u.total} games · ${u.deck.length} positions · ${secs}s`
+      : `${u.total} games · ${u.deck.length} positions · ${threats} threats`;
     document.body.dataset.view = u.deck.length ? "drill" : "waiting";
     trainer.setItems(u.deck);
   } });
@@ -98,8 +98,8 @@ async function start(store, trainer, username, months, timeClasses) {
 async function main() {
   const store = await openStore();
   const trainer = new Trainer({
-    board: $("board"), arrows: $("arrows"), meta: $("meta"), prompt: $("prompt"), steps: $("steps"), feedback: $("feedback"),
-    actions: $("actions"), next: $("btn-next"), hint: $("btn-hint"), safe: $("btn-safe"), safeLabel: $("btn-safe-label"),
+    board: $("board"), arrows: $("arrows"), meta: $("meta"), played: $("played"), question: $("question"), scan: $("scan"), feedback: $("feedback"),
+    actions: $("actions"), next: $("btn-next"), safe: $("btn-safe"), safeLabel: $("btn-safe-label"),
     side: $("device-side"), boxes: $("boxes"),
     done: $("st-done"), acc: $("st-acc"), streak: $("st-streak"),
   }, { load: async () => null, save: async () => {} });

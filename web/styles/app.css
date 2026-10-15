@@ -1,4 +1,5 @@
-/* Components, from tokens.css only. Radius is 0 everywhere; there are no shadows anywhere. */
+/* Components, from tokens.css only. Radius is 0 everywhere; no drop shadows (inset outlines only).
+   The accent appears on the board, the active scan chips, the key move card, progress and the hero's one word. */
 
 [hidden] { display: none !important; }
 *, *::before, *::after { box-sizing: border-box; border-radius: 0; }
@@ -55,33 +56,36 @@ a:hover { border-bottom-width: 2px; }
 }
 .hero { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 0 0 8px; }
 .hero h1 { margin: 12px 0 0; font: 700 clamp(3rem, min(8vw, 11vh), 8rem)/0.92 var(--f-display); letter-spacing: var(--track-tighter); }
-.hero h1 em { display: block; font-style: italic; font-weight: 400; font-size: 1.25em; }
+.hero h1 em { display: block; font-style: italic; font-weight: 400; font-size: 1.25em; color: var(--accent); }
 .hero-rule { display: flex; align-items: center; gap: 0; margin: 20px 0; }
 .hero-rule::before { content: ""; flex: 1; border-top: var(--thick); }
-.hero-rule::after { content: ""; width: 14px; height: 14px; border: var(--medium); background: var(--white); }
+.hero-rule::after { content: ""; width: 14px; height: 14px; border: var(--medium); background: var(--accent); }
 .hero p { margin: 0; max-width: 44ch; font-size: 1.125rem; color: var(--ink-muted); }
 .hero p b { color: var(--black); font-weight: 600; }
 
 .boardbox { position: absolute; inset: 0; border: var(--medium); }
 .board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 100%; height: 100%; }
-/* Print-diagram squares: white, and white with black hatching for the dark ones. */
-.sq { position: relative; display: flex; align-items: center; justify-content: center; border: 0; padding: 0; margin: 0; cursor: pointer; font: inherit; background: var(--white); }
-.sq.d { background: repeating-linear-gradient(-45deg, var(--white) 0 3px, #bdbdbd 3px 4px); }
+/* The one place the accent fills an area: the board. Solid squares, real piece drawings. */
+.sq { position: relative; display: flex; align-items: center; justify-content: center; border: 0; padding: 0; margin: 0; cursor: pointer; font: inherit; background: var(--accent-wash); }
+.sq.d { background: var(--accent-soft); }
 .sq:focus-visible { outline: 3px solid var(--black); outline-offset: -3px; z-index: 2; }
-.sq .lm { position: absolute; inset: 0; border: var(--medium); border-style: dashed; pointer-events: none; }
-.sq.sel { background: var(--black); }
-.sq.sel .pc.w { color: var(--black); -webkit-text-stroke: 1.4px var(--white); }
-.sq.sel .pc.b { color: var(--white); -webkit-text-stroke: 0; }
-.sq .dot { position: absolute; width: 22%; height: 22%; background: var(--black); pointer-events: none; }
-.sq .ring { position: absolute; inset: 8%; border: 3px solid var(--black); pointer-events: none; }
-.sq .hintmark { position: absolute; inset: 0; border: var(--thick); pointer-events: none; }
-.pc { position: relative; font-family: var(--f-piece); font-size: min(8.4vw, 6.2vh, 54px); line-height: 1; pointer-events: none; user-select: none; }
-@media (max-width: 1023px) { .pc { font-size: min(9vw, 54px); } }
-.pc.w { color: var(--white); -webkit-text-stroke: 1.4px var(--black); paint-order: stroke fill; }
-.pc.b { color: var(--black); }
-.coord { position: absolute; font: 500 10px var(--f-mono); pointer-events: none; color: var(--ink-muted); background: var(--white); padding: 0 2px; }
-.coord.r { top: 2px; left: 2px; }
-.coord.f { bottom: 2px; right: 2px; }
+.sq .lm { position: absolute; inset: 0; background: var(--accent-mid); opacity: 0.55; pointer-events: none; }
+.sq.sel { box-shadow: inset 0 0 0 4px var(--black); }
+.sq .dot { position: absolute; width: 24%; height: 24%; background: var(--black); opacity: 0.55; pointer-events: none; }
+.sq .ring { position: absolute; inset: 6%; border: 3px solid var(--black); opacity: 0.6; pointer-events: none; }
+.sq .hintmark { position: absolute; inset: 0; box-shadow: inset 0 0 0 4px var(--accent); pointer-events: none; }
+.sq .loose { position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(-45deg, transparent 0 6px, rgba(90, 95, 214, 0.35) 6px 8px); box-shadow: inset 0 0 0 2px var(--accent); }
+.pc { position: relative; width: 88%; height: 88%; background: center / contain no-repeat; pointer-events: none; }
+.pc.wP { background-image: url("../pieces/wP.svg"); } .pc.wN { background-image: url("../pieces/wN.svg"); }
+.pc.wB { background-image: url("../pieces/wB.svg"); } .pc.wR { background-image: url("../pieces/wR.svg"); }
+.pc.wQ { background-image: url("../pieces/wQ.svg"); } .pc.wK { background-image: url("../pieces/wK.svg"); }
+.pc.bP { background-image: url("../pieces/bP.svg"); } .pc.bN { background-image: url("../pieces/bN.svg"); }
+.pc.bB { background-image: url("../pieces/bB.svg"); } .pc.bR { background-image: url("../pieces/bR.svg"); }
+.pc.bQ { background-image: url("../pieces/bQ.svg"); } .pc.bK { background-image: url("../pieces/bK.svg"); }
+.coord { position: absolute; font: 500 10px var(--f-mono); pointer-events: none; color: var(--accent); }
+.sq.d .coord { color: var(--white); }
+.coord.r { top: 2px; left: 3px; }
+.coord.f { bottom: 1px; right: 3px; }
 svg.arrows { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 
 /* ---------- Right: the panel ---------- */
@@ -132,7 +136,7 @@ select.input { appearance: none; cursor: pointer; padding-right: 24px;
 .status { display: grid; gap: 8px; }
 .status .readout { display: flex; align-items: center; gap: 10px; font: 400 0.8125rem/1.4 var(--f-mono); }
 .meter { height: 4px; background: var(--hairline-color); }
-.meter i { display: block; height: 100%; width: 0; background: var(--black); }
+.meter i { display: block; height: 100%; width: 0; background: var(--accent); }
 
 /* Counters: the inverted band */
 .counters {
@@ -150,19 +154,60 @@ select.input { appearance: none; cursor: pointer; padding-right: 24px;
 .meta { display: flex; flex-wrap: wrap; gap: 4px 16px; }
 .meta span { font: 500 0.75rem var(--f-mono); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--ink-muted); }
 .meta span + span::before { content: "/"; margin-right: 16px; color: var(--hairline-color); }
-.prompt { margin: 0; font: 400 1.3125rem/1.32 var(--f-display); letter-spacing: var(--track-tight); }
-.mv { font: 500 0.85em var(--f-mono); border-bottom: var(--medium); white-space: nowrap; }
-.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; counter-reset: step; }
-.steps li { counter-increment: step; display: flex; gap: 12px; font-size: 0.9375rem; color: var(--ink-muted); }
-.steps li::before { content: "0" counter(step); font: 500 0.75rem/1.9 var(--f-mono); color: var(--black); }
+.played { display: flex; align-items: baseline; gap: 14px; }
+.played-move { font: 700 2.25rem/1 var(--f-mono); letter-spacing: -0.02em; padding: 2px 10px 4px; background: var(--accent-wash); border-bottom: 4px solid var(--accent); }
+.question { margin: -2px 0 0; font: italic 400 1.75rem/1.15 var(--f-display); letter-spacing: var(--track-tight); }
 
-/* Feedback: right answers invert; misses are framed. Words say which, never color. */
-.fb { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; }
+/* Scan chips and the answer row: labelled rows, the label column aligned */
+.scan, .answer { display: grid; grid-template-columns: 72px repeat(3, auto) 1fr; align-items: center; gap: 8px; }
+.answer { grid-template-columns: 72px auto auto auto 1fr; }
+.chip {
+  display: inline-flex; align-items: center; gap: 8px; min-height: var(--touch); padding: 0 14px;
+  border: var(--medium); background: var(--white); cursor: pointer;
+  font: 500 0.75rem var(--f-mono); letter-spacing: var(--track-label); text-transform: uppercase;
+  transition: background var(--t), color var(--t);
+}
+.chip b { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 4px; font: 700 0.8125rem var(--f-mono); border: var(--thin); }
+.chip:hover { background: var(--accent-wash); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--white); }
+.chip[aria-pressed="true"] b { border-color: var(--white); }
+.chip:focus-visible { outline: 3px solid var(--black); outline-offset: 2px; }
+.hint-move { font: 500 0.875rem var(--f-body); display: inline-flex; align-items: center; gap: 8px; }
+.hint-move::before { content: ""; width: 12px; height: 12px; background: var(--accent); }
+.or { font: italic 0.9375rem var(--f-display); color: var(--ink-muted); }
+.mv { font: 500 0.85em var(--f-mono); border-bottom: var(--medium); white-space: nowrap; }
+
+/* Feedback: a verdict, move cards and an eval bar. Found = inverted; missed = framed. */
+.fb { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 16px; }
 .fb.ok { background: var(--black); color: var(--white); }
-.fb.ok .mv { border-bottom-color: var(--white); }
 .fb.no { border: var(--medium); border-left-width: 8px; }
-.fb h2 { margin: 0; font: italic 700 1.25rem/1.1 var(--f-display); letter-spacing: var(--track-tight); }
-.fb p { margin: 0; font-size: 0.9375rem; line-height: 1.5; }
+.fb-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.fb h2 { margin: 0; font: italic 700 1.5rem/1.1 var(--f-display); letter-spacing: var(--track-tight); }
+.game-link { font: 500 0.75rem var(--f-mono); letter-spacing: var(--track-label); text-transform: uppercase; }
+.fb.ok .game-link { border-bottom-color: var(--white); }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+.card { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: var(--thin); }
+.fb.ok .card { border-color: rgba(255, 255, 255, 0.4); }
+.fb.ok .card .label { color: rgba(255, 255, 255, 0.7); }
+.card b { font: 700 1.125rem var(--f-mono); }
+.card.key { background: var(--accent); border-color: var(--accent); color: var(--white); }
+.card.key .label { color: rgba(255, 255, 255, 0.85); }
+.card.struck b { text-decoration: line-through; text-decoration-thickness: 2px; }
+.card.miss b { text-decoration: line-through; text-decoration-thickness: 2px; color: var(--ink-muted); }
+.fb.ok .card.miss b { color: rgba(255, 255, 255, 0.7); }
+.mate { font: italic 700 1.75rem/1 var(--f-display); }
+
+.evalbar { display: grid; gap: 6px; }
+.evalbar .track { position: relative; height: 10px; border: var(--thin); background: var(--white); }
+.fb.ok .evalbar .track { border-color: var(--white); }
+.evalbar .zero { position: absolute; left: 50%; top: -5px; bottom: -5px; width: 1px; background: var(--ink-muted); }
+.evalbar .span { position: absolute; top: 0; bottom: 0; background: var(--accent-soft); }
+.evalbar .pt { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border: var(--medium); background: var(--white); }
+.evalbar .pt.after { background: var(--black); }
+.fb.ok .evalbar .pt.after { background: var(--accent); border-color: var(--white); }
+.evalbar .ends { display: flex; gap: 10px; font: 700 0.875rem var(--f-mono); }
+.evalbar .ends .arrow { color: var(--ink-muted); font-weight: 400; }
+.fb.ok .evalbar .ends .arrow { color: rgba(255, 255, 255, 0.6); }
 
 /* Review boxes, inside the inverted band: white bars, counts under them */
 .vu { display: flex; flex-direction: column; justify-content: end; gap: 4px; }
@@ -175,23 +220,25 @@ select.input { appearance: none; cursor: pointer; padding-right: 24px;
 .foot a { color: var(--ink-muted); border-bottom-color: var(--hairline-color); }
 
 /* Waiting */
-.waiting { margin: 0; font: italic 1.125rem var(--f-body); color: var(--ink-muted); }
+.waiting { margin: 0; display: flex; align-items: center; gap: 12px; font: italic 1.125rem var(--f-body); color: var(--ink-muted); }
+.spinner { width: 18px; height: 18px; border: var(--medium); border-color: var(--accent) var(--hairline-color) var(--hairline-color) var(--hairline-color); animation: spin 0.8s steps(8) infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ---------- Views (set by app.js on <body data-view>) ---------- */
 body:not([data-view="drill"]) .boardbox,
 body:not([data-view="drill"]) .drill,
-body:not([data-view="drill"]) .counters,
+body:not([data-view="drill"]) .counters { display: none; }
 body[data-view="drill"] .hero { display: none; }
 body:not([data-view="waiting"]) .waiting { display: none; }
 body:not([data-view="intro"]) .how { display: none; }
 
-/* How it works: shown before the first scan, in the space the drill will take */
-.how { list-style: none; margin: 8px 0 0; padding: 0; border-top: var(--thick); counter-reset: how; }
-.how li { counter-increment: how; display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 16px; padding: 18px 0; border-bottom: var(--hairline); }
-.how li::before { content: "0" counter(how); font: 400 2.5rem/1 var(--f-display); letter-spacing: var(--track-tight); }
-.how h2 { margin: 0 0 4px; font: 700 1.25rem/1.2 var(--f-display); letter-spacing: var(--track-tight); }
-.how p { margin: 0; color: var(--ink-muted); font-size: 0.9375rem; line-height: 1.5; }
-/* Once there's a deck, the form shrinks to a summary line to free the screen for the drill. */
+/* How it works: three numbered columns, a word each */
+.how { list-style: none; margin: 12px 0 0; padding: 0; border-top: var(--thick); counter-reset: how; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.how li { counter-increment: how; display: flex; flex-direction: column; gap: 6px; padding: 18px 16px 18px 0; }
+.how li + li { border-left: var(--hairline); padding-left: 16px; }
+.how li::before { content: "0" counter(how); font: 400 3rem/1 var(--f-display); color: var(--accent); }
+.how h2 { margin: 0; font: 700 1.5rem/1.1 var(--f-display); letter-spacing: var(--track-tight); }
+
 body[data-view="drill"] .form:not(.open) .form-body { display: none; }
 .form-summary { display: none; align-items: center; justify-content: space-between; gap: 12px; }
 body[data-view="drill"] .form:not(.open) .form-summary { display: flex; }
@@ -209,4 +256,3 @@ body[data-view="drill"] .form:not(.open) .form-summary { display: flex; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
-.fb.ok a { border-bottom-color: var(--white); }

@@ -10,5 +10,8 @@
     "test": "node --test test/*.test.js",
     "build": "node build.mjs",
     "serve": "npm run build && python3 -m http.server 8080 -d dist"
+  },
+  "devDependencies": {
+    "chessground": "9.2.1"
   }
 }

@@ -1,8 +1,13 @@
-# Design: Minimalist Monochrome
+# Design: Minimalist Monochrome, one indigo accent
 
 An analysis tool should read like a printed analysis: black ink, white paper, serif type, ruled lines.
-Threat Scan is styled as an editorial chess page. The board is a book diagram, the numbers sit on a
-black inverted band, and every state is said in words or shown by line weight, never by color.
+Threat Scan is styled as an editorial chess page with a single pastel-indigo accent. The accent is
+where the eye should go: the board, the move you played, the scan chips you switch on, the reply that
+punishes you, and progress. Everything else is black and white, and every state is also said in words
+or shape, never by color alone.
+
+Words were cut in favor of interface (2026-10-15): the prompt is a move chip and a five-word question,
+the scan steps are chips that light the board, and feedback is move cards plus an eval bar.
 
 Replaced Industrial Skeuomorphism on 2026-10-15: monochrome suits analysis, and it frees enough
 space for the whole app to fit one screen.
@@ -51,11 +56,15 @@ On a desktop (1024px wide and 700px tall or more) the whole app fits the window 
 |---|---|---|
 | `--white` | `#ffffff` | paper |
 | `--black` | `#000000` | ink, borders, fills, the inverted band, focus |
-| `--muted` | `#f5f5f5` | reserved; no component needs it yet |
 | `--ink-muted` | `#525252` | labels and secondary text (7.8:1) |
-| `--hairline-color` | `#e5e5e5` | hairline dividers, the empty progress rule |
+| `--hairline-color` | `#e5e5e5` | hairline dividers, the empty progress track |
+| `--accent-wash` | `#eef0fd` | light squares, the played-move chip, chip hover |
+| `--accent-soft` | `#c5c9f4` | dark squares, the eval bar's swing |
+| `--accent-mid` | `#9aa0ec` | last-move tint |
+| `--accent` | `#5a5fd6` | active chips, the punishing-reply card, progress, step numbers, highlights (5.2:1) |
 
-No other colors. Hatched board squares use a mid gray only inside the hatch pattern.
+The accent never carries meaning alone: active chips also show their count, the key card is labelled,
+and right/wrong is a word plus inversion/frame and a solid/dashed arrow.
 
 ## Lines
 
@@ -77,18 +86,17 @@ No other colors. Hatched board squares use a mid gray only inside the hatch patt
   *before* is set larger, in italic, as the graphic word.
 - Moves (`.mv`) are mono with a 2px underline, so notation reads as data inside serif prose.
 
-## The board as a book diagram
+## The board
 
 | Thing | Look |
 |---|---|
-| light square | white |
-| dark square | white with fine diagonal hatching |
-| white piece | white fill, black outline |
-| black piece | solid black |
-| last move | dashed 2px frame on both squares |
-| selected piece | square inverts to black, piece inverts to white |
-| legal targets | small black square (empty) or black frame (capture) |
-| checks & captures hint | 4px black frame |
+| squares | solid `--accent-wash` and `--accent-soft` (no hatching: it made pieces hard to read) |
+| pieces | the cburnett set (Colin M.L. Burnett, GPLv2+/BSD/GFDL), extracted from `chessground@9.2.1` at build time into `pieces/*.svg` |
+| last move | `--accent-mid` tint on both squares |
+| selected piece | 4px black inset frame |
+| legal targets | dimmed black square (empty) or black ring (capture) |
+| Checks / Captures chip on | 4px accent inset frame on each move's from and to squares |
+| Loose chip on | accent hatch and 2px accent frame on each of my pieces that is attacked and undefended |
 | answer arrow | solid when you found it, dashed when you missed |
 
 ## Components
@@ -96,14 +104,20 @@ No other colors. Hatched board squares use a mid gray only inside the hatch patt
 | Component | Class | Notes |
 |---|---|---|
 | Bar | `.bar` | 56px, wordmark left, links and status right, 4px rule below |
-| Status mark | `.mark` | 10px square: hollow idle, filled ready, blinking (steps, not fades) while working, doubled frame on error |
+| Status mark | `.mark` | 10px square: hollow idle, filled ready, blinking (steps, not fades) while working |
 | Input | `.input` | 2px underline only; 4px on focus; italic serif placeholder |
-| Toggle | `.toggle` | joined 1px boxes; checked inverts |
-| Button | `.btn`, `.btn.primary`, `.btn.ghost` | 2px border, mono caps; hover inverts instantly; primary is black |
-| Progress | `.meter` | 4px hairline track filling with black |
-| Counters | `.counters` | inverted band with a faint vertical-line texture; review boxes as white bars in the last column |
-| Feedback | `.fb.ok`, `.fb.no` | found = inverted black block; missed = white block, 2px frame, 8px left edge |
-| How it works | `.how` | 4px rule, numbered rows in Playfair, hairlines between |
+| Toggle | `.toggle` | joined 1px boxes; checked inverts to black |
+| Button | `.btn`, `.btn.primary`, `.btn.ghost` | 2px border, mono caps; hover inverts instantly |
+| Progress | `.meter` | 4px track filling with `--accent` |
+| Counters | `.counters` | inverted band; review boxes as white bars in the last column |
+| Played move | `.played-move` | 36px mono on `--accent-wash` with a 4px accent underline: the focal point of the drill |
+| Question | `.question` | Playfair italic, one line ("Can White punish it?") |
+| Scan chip | `.chip[data-kind]` | Checks / Captures / Loose; shows `?` until pressed, then the count, accent fill, and lights the board |
+| Answer row | `.answer` | an accent square + "Move their piece on the board", *or*, "Nothing works" |
+| Feedback | `.fb.ok`, `.fb.no` | verdict (Playfair italic) and game link; move cards; eval bar or "Mate in N". Found = inverted; missed = framed with an 8px left edge |
+| Move card | `.card`, `.card.key`, `.card.struck`, `.card.miss` | their best reply in accent; what you played struck through; your wrong try struck and grayed |
+| Eval bar | `.evalbar` | −6 to +6 pawns, zero tick, hollow square before your move, filled after, accent span between |
+| How it works | `.how` | three columns: accent number, one word, one mono line |
 
 ## Texture
 

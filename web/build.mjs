@@ -1,5 +1,5 @@
 // Copies the site into dist/: page, sources, chess.js and the lite engine. No bundler.
-import { cpSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 
 const out = new URL("./dist/", import.meta.url);
 rmSync(out, { recursive: true, force: true });
@@ -12,6 +12,18 @@ cpSync(new URL("./node_modules/chess.js/dist/esm/chess.js", import.meta.url), ne
 for (const f of ["stockfish-19-lite-single.js", "stockfish-19-lite-single.wasm"])
   cpSync(new URL(`./node_modules/stockfish/bin/${f}`, import.meta.url), new URL(`engine/${f}`, out));
 cpSync(new URL("./node_modules/stockfish/Copying.txt", import.meta.url), new URL("engine/COPYING.txt", out));
+
+// Pieces: the cburnett set (Colin M.L. Burnett; GPLv2+/BSD/GFDL), as embedded in chessground's stylesheet.
+// Written as pieces/wP.svg ... pieces/bK.svg.
+const LETTER = { pawn: "P", knight: "N", bishop: "B", rook: "R", queen: "Q", king: "K" };
+const css = readFileSync(new URL("./node_modules/chessground/assets/chessground.cburnett.css", import.meta.url), "utf8");
+mkdirSync(new URL("pieces/", out), { recursive: true });
+let pieces = 0;
+for (const m of css.matchAll(/piece\.(\w+)\.(white|black)\s*\{\s*background-image:\s*url\('data:image\/svg\+xml;base64,([^']+)'\)/g)) {
+  writeFileSync(new URL(`pieces/${m[2][0]}${LETTER[m[1]]}.svg`, out), Buffer.from(m[3], "base64"));
+  pieces++;
+}
+if (pieces !== 12) throw new Error(`expected 12 piece images, found ${pieces}`);
 writeFileSync(new URL("_headers", out), [
   "/*",
   "  X-Content-Type-Options: nosniff",
