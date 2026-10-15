@@ -1,25 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- Cracktics: a pawn in a top hat and monocle. Ink flips for dark browser chrome. -->
+  <!-- Cracktics: a knight in a top hat and monocle. Ink flips for dark browser chrome. -->
   <style>
-    .ink { fill: #000; } .gap { fill: #fff; } .line { stroke: #000; }
+    .ink { fill: #000; } .gap { fill: #fff; }
     .accent { fill: #5a5fd6; } .ring { stroke: #5a5fd6; }
     @media (prefers-color-scheme: dark) {
-      .ink { fill: #f2f2f2; } .gap { fill: #0e0e10; } .line { stroke: #f2f2f2; }
+      .ink { fill: #f2f2f2; } .gap { fill: #0e0e10; }
       .accent { fill: #8f95ff; } .ring { stroke: #8f95ff; }
     }
   </style>
-  <!-- pawn: head, collar, body, base -->
-  <circle class="ink" cx="16" cy="15.2" r="5"/>
-  <rect class="ink" x="10.5" y="19.4" width="11" height="2.2"/>
-  <path class="ink" d="M12.6 21.6h6.8l2.6 6H10z"/>
-  <rect class="ink" x="7.5" y="27.4" width="17" height="3"/>
-  <!-- top hat: a paper-colored gap separates the brim from the head -->
-  <rect class="gap" x="7.6" y="9" width="16.8" height="2.6"/>
-  <rect class="ink" x="8.2" y="9.4" width="15.6" height="1.8"/>
-  <rect class="ink" x="11" y="1.6" width="10" height="7.8"/>
-  <rect class="accent" x="11" y="6.6" width="10" height="1.6"/>
-  <!-- monocle on the right eye, with its chain -->
-  <circle class="gap" cx="18.3" cy="15" r="3.2"/>
-  <circle class="ring" cx="18.3" cy="15" r="2.4" fill="none" stroke-width="1.5"/>
-  <path class="ring" d="M20.4 16.6c1.6 1.6 1.9 3.6 1.2 5.6" fill="none" stroke-width="0.9"/>
+  <!-- knight, facing left: neck, head, snout, chest; then the base -->
+  <path class="ink" d="M11 27.4H22.8C22.8 22 23.2 16 19.6 12.4L19.2 10.2L17.2 11.4C13.8 11.6 11 13.8 9.6 16.6L8 19.8C7.8 20.9 8.9 21.7 10 21.1L12.4 19.6C13.6 19.1 14.7 19.5 14.6 20.8C14.1 23.2 12 24.6 11 27.4Z"/>
+  <rect class="ink" x="8" y="27.4" width="17" height="3"/>
+  <!-- top hat, tilted back on the head; a paper-colored gap separates the brim from the head -->
+  <g transform="translate(0 1) rotate(8 17 8)">
+    <rect class="gap" x="11.2" y="8.2" width="12" height="2.6"/>
+    <rect class="ink" x="11.8" y="8.6" width="10.8" height="1.8"/>
+    <rect class="ink" x="13.6" y="1.4" width="7.2" height="7.4"/>
+    <rect class="accent" x="13.6" y="6.1" width="7.2" height="1.5"/>
+  </g>
+  <!-- monocle on the eye, with its chain -->
+  <circle class="gap" cx="14.2" cy="15.2" r="3"/>
+  <circle class="ring" cx="14.2" cy="15.2" r="2.2" fill="none" stroke-width="1.4"/>
+  <path class="ring" d="M16.1 16.6c1.7 1.3 2.4 3.3 2 5.6" fill="none" stroke-width="0.9"/>
 </svg>
