@@ -6,6 +6,7 @@ rmSync(out, { recursive: true, force: true });
 mkdirSync(new URL("vendor/", out), { recursive: true });
 mkdirSync(new URL("engine/", out), { recursive: true });
 cpSync(new URL("./index.html", import.meta.url), new URL("index.html", out));
+cpSync(new URL("./favicon.svg", import.meta.url), new URL("favicon.svg", out));
 cpSync(new URL("./src/", import.meta.url), new URL("src/", out), { recursive: true });
 cpSync(new URL("./styles/", import.meta.url), new URL("styles/", out), { recursive: true });
 cpSync(new URL("./node_modules/chess.js/dist/esm/chess.js", import.meta.url), new URL("vendor/chess.js", out));

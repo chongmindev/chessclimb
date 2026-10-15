@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Cracktics: a pawn in a top hat and monocle. Ink flips for dark browser chrome. -->
+  <style>
+    .ink { fill: #000; } .gap { fill: #fff; } .line { stroke: #000; }
+    .accent { fill: #5a5fd6; } .ring { stroke: #5a5fd6; }
+    @media (prefers-color-scheme: dark) {
+      .ink { fill: #f2f2f2; } .gap { fill: #0e0e10; } .line { stroke: #f2f2f2; }
+      .accent { fill: #8f95ff; } .ring { stroke: #8f95ff; }
+    }
+  </style>
+  <!-- pawn: head, collar, body, base -->
+  <circle class="ink" cx="16" cy="15.2" r="5"/>
+  <rect class="ink" x="10.5" y="19.4" width="11" height="2.2"/>
+  <path class="ink" d="M12.6 21.6h6.8l2.6 6H10z"/>
+  <rect class="ink" x="7.5" y="27.4" width="17" height="3"/>
+  <!-- top hat: a paper-colored gap separates the brim from the head -->
+  <rect class="gap" x="7.6" y="9" width="16.8" height="2.6"/>
+  <rect class="ink" x="8.2" y="9.4" width="15.6" height="1.8"/>
+  <rect class="ink" x="11" y="1.6" width="10" height="7.8"/>
+  <rect class="accent" x="11" y="6.6" width="10" height="1.6"/>
+  <!-- monocle on the right eye, with its chain -->
+  <circle class="gap" cx="18.3" cy="15" r="3.2"/>
+  <circle class="ring" cx="18.3" cy="15" r="2.4" fill="none" stroke-width="1.5"/>
+  <path class="ring" d="M20.4 16.6c1.6 1.6 1.9 3.6 1.2 5.6" fill="none" stroke-width="0.9"/>
+</svg>
