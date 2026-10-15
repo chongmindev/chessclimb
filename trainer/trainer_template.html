@@ -1,0 +1,257 @@
+<title>Threat Scan Drill</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@500;800&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols+2&display=swap&text=%E2%99%9A%E2%99%9B%E2%99%9C%E2%99%9D%E2%99%9E%E2%99%9F">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<style>
+/* Layout: board left, scan panel right; stacks under 820px. Slate tournament board, scoresheet notation in mono. */
+:root{
+  --bg:#eef0f3; --surface:#ffffff; --fg:#1b2129; --muted:#5d6876; --line:#d6dbe2;
+  --sq-light:#e3e7ec; --sq-dark:#8798ad; --last:#e9c46a; --hint:#2f6fdb; --sel:#2f6fdb;
+  --good:#1f8a52; --good-bg:#e3f4ea; --bad:#c2412d; --bad-bg:#fbe8e4; --accent:#2f6fdb;
+  --pc-white:#fbfbf8; --pc-black:#1a1d22; --pc-edge:#2a2f37;
+  --f-display:"Chivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --f-piece:"Noto Sans Symbols 2", "Segoe UI Symbol", "DejaVu Sans", serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161c; --surface:#1a2029; --fg:#e6eaf0; --muted:#9aa6b5; --line:#2b3440;
+  --sq-light:#b9c3cf; --sq-dark:#5f718a; --last:#d6ae4a; --hint:#6aa0ff; --sel:#6aa0ff;
+  --good:#4cc283; --good-bg:#16301f; --bad:#ef7a64; --bad-bg:#3a1c17; --accent:#6aa0ff;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161c; --surface:#1a2029; --fg:#e6eaf0; --muted:#9aa6b5; --line:#2b3440;
+  --sq-light:#b9c3cf; --sq-dark:#5f718a; --last:#d6ae4a; --hint:#6aa0ff; --sel:#6aa0ff;
+  --good:#4cc283; --good-bg:#16301f; --bad:#ef7a64; --bad-bg:#3a1c17; --accent:#6aa0ff;
+  color-scheme:dark}
+html,body{background:var(--bg)}
+body{color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px 24px}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(26px,4vw,34px);letter-spacing:-.01em;margin:0;line-height:1.1;text-wrap:balance}
+.sub{color:var(--muted);margin:4px 0 0;max-width:60ch}
+.stats{display:flex;gap:20px;font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.stats b{display:block;font-size:20px;color:var(--fg);font-weight:600;font-variant-numeric:tabular-nums}
+.main{display:grid;grid-template-columns:minmax(0,520px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:820px){.main{grid-template-columns:minmax(0,1fr)}}
+.boardbox{position:relative;width:100%;max-width:520px;aspect-ratio:1;border-radius:4px;overflow:hidden;box-shadow:0 0 0 1px var(--line)}
+.board{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);width:100%;height:100%}
+.sq{position:relative;display:flex;align-items:center;justify-content:center;border:0;padding:0;margin:0;cursor:pointer;font:inherit;background:var(--sq-light)}
+.sq.d{background:var(--sq-dark)}
+.sq:focus-visible{outline:3px solid var(--sel);outline-offset:-3px;z-index:2}
+.sq .lm{position:absolute;inset:0;background:var(--last);opacity:.55;pointer-events:none}
+.sq.sel{box-shadow:inset 0 0 0 4px var(--sel)}
+.sq .dot{position:absolute;width:26%;height:26%;border-radius:50%;background:var(--sel);opacity:.45;pointer-events:none}
+.sq .ring{position:absolute;inset:6%;border-radius:50%;border:4px solid var(--sel);opacity:.55;pointer-events:none}
+.sq .hintmark{position:absolute;inset:0;box-shadow:inset 0 0 0 4px var(--hint);pointer-events:none}
+.pc{position:relative;font-family:var(--f-piece);font-size:min(9.2vw,50px);line-height:1;pointer-events:none;user-select:none}
+.pc.w{color:var(--pc-white);-webkit-text-stroke:1.4px var(--pc-edge);paint-order:stroke fill}
+.pc.b{color:var(--pc-black);-webkit-text-stroke:.6px var(--pc-black)}
+.coord{position:absolute;font-family:var(--f-mono);font-size:10px;pointer-events:none;opacity:.8}
+.coord.r{top:2px;left:3px}.coord.f{bottom:1px;right:3px}
+.sq .coord{color:var(--sq-dark)}.sq.d .coord{color:var(--sq-light)}
+svg.arrows{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:20px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.meta{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;display:flex;flex-wrap:wrap;gap:4px 12px}
+.prompt{font-size:17px;margin:0}
+.mv{font-family:var(--f-mono);font-weight:600;background:var(--bg);padding:1px 6px;border-radius:3px;white-space:nowrap}
+.steps{margin:0;padding-left:18px;color:var(--muted);font-size:14px;display:flex;flex-direction:column;gap:2px}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button.b{font:600 14px var(--f-body);border-radius:4px;padding:10px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg)}
+button.b:hover{border-color:var(--muted)}
+button.b:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button.b.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.fb{border-radius:4px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.fb.ok{background:var(--good-bg);border-left:4px solid var(--good)}
+.fb.no{background:var(--bad-bg);border-left:4px solid var(--bad)}
+.fb h2{font:800 16px var(--f-display);margin:0}
+.fb.ok h2{color:var(--good)}.fb.no h2{color:var(--bad)}
+.fb p{margin:0}
+.boxes{display:flex;gap:6px;align-items:end;font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.boxes div{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1}
+.boxes i{display:block;width:100%;background:var(--accent);border-radius:2px 2px 0 0;min-height:2px;opacity:.75}
+.foot{color:var(--muted);font-size:13px;max-width:70ch}
+@media (prefers-reduced-motion:no-preference){.fb{animation:pop .18s ease-out}@keyframes pop{from{transform:translateY(4px)}to{transform:none}}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Threat Scan Drill</h1>
+      <p class="sub">Every position is from your own games as Black, right after your move. Find White's punishing reply, or confirm there isn't one.</p>
+    </div>
+    <div class="stats" aria-live="polite">
+      <div><b id="st-done">0</b>answered</div>
+      <div><b id="st-acc">–</b>correct</div>
+      <div><b id="st-streak">0</b>streak</div>
+    </div>
+  </header>
+
+  <div class="main">
+    <div>
+      <div class="boardbox">
+        <div class="board" id="board" role="grid" aria-label="Chess board, Black at the bottom"></div>
+        <svg class="arrows" id="arrows" viewBox="0 0 8 8" aria-hidden="true"></svg>
+      </div>
+    </div>
+
+    <section class="panel">
+      <div class="meta" id="meta"></div>
+      <p class="prompt" id="prompt"></p>
+      <ol class="steps" id="steps">
+        <li>List every White check.</li>
+        <li>List every White capture.</li>
+        <li>Ask what's newly loose after your move.</li>
+      </ol>
+      <div class="btns" id="actions">
+        <button class="b" id="btn-hint" type="button">Show checks &amp; captures</button>
+        <button class="b" id="btn-safe" type="button">Nothing works for White</button>
+      </div>
+      <div id="feedback"></div>
+      <div class="btns"><button class="b primary" id="btn-next" type="button" hidden>Next position</button></div>
+      <div>
+        <div class="meta" style="margin-bottom:6px">Review boxes · misses come back sooner</div>
+        <div class="boxes" id="boxes"></div>
+      </div>
+    </section>
+  </div>
+  <p class="foot" id="foot"></p>
+</div>
+
+<script>
+const ITEMS = __ITEMS__;
+const PIECE = {k:"♚︎",q:"♛︎",r:"♜︎",b:"♝︎",n:"♞︎",p:"♟︎"};
+const FILES="abcdefgh";
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let boxes=store.get("tsd-boxes",{});      // id -> 1..5
+let stats=store.get("tsd-stats",{done:0,ok:0,streak:0});
+let seen=store.get("tsd-seen",{});        // id -> turn last shown
+let turn=store.get("tsd-turn",0);
+let cur=null, game=null, sel=null, answered=false, hintOn=false;
+
+function pick(){
+  // Leitner: due when turn - lastSeen >= 2^(box-1)*3; new items count as box 0 (always due)
+  const due=ITEMS.filter(it=>{const b=boxes[it.id]||0; if(!b) return true; return turn-(seen[it.id]??-99) >= Math.pow(2,b-1)*3;});
+  const pool=(due.length?due:ITEMS).filter(it=>!cur||it.id!==cur.id);
+  pool.sort((a,b)=>((boxes[a.id]||0)-(boxes[b.id]||0)) || (Math.random()-.5));
+  const low=pool.slice(0,Math.max(6,Math.ceil(pool.length/4)));
+  return low[Math.floor(Math.random()*low.length)];
+}
+
+function sqName(r,c){ // Black at bottom: row 0 = rank 1, col 0 = file h
+  return FILES[7-c]+(r+1);
+}
+function xy(sq){const f=FILES.indexOf(sq[0]),r=+sq[1];return [7-f+.5, r-1+.5];}
+
+function render(){
+  const el=document.getElementById("board"); el.innerHTML="";
+  let moves=answered?[]:game.moves({verbose:true});
+  const targets=sel?moves.filter(m=>m.from===sel):[];
+  const hintSq=new Set();
+  if(hintOn&&!answered) moves.forEach(m=>{if(m.flags.includes("c")||m.flags.includes("e")||m.san.includes("+")||m.san.includes("#")){hintSq.add(m.from);hintSq.add(m.to)}});
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    const s=sqName(r,c), p=game.get(s);
+    const b=document.createElement("button"); b.type="button";
+    b.className="sq"+(((FILES.indexOf(s[0])+(+s[1]))%2===1)?" d":"")+(sel===s?" sel":"");
+    b.setAttribute("aria-label",s+(p?" "+(p.color==="w"?"white ":"black ")+({k:"king",q:"queen",r:"rook",b:"bishop",n:"knight",p:"pawn"})[p.type]:""));
+    if(s===cur.from||s===cur.to){const l=document.createElement("span");l.className="lm";b.appendChild(l)}
+    if(hintSq.has(s)){const h=document.createElement("span");h.className="hintmark";b.appendChild(h)}
+    if(c===0){const k=document.createElement("span");k.className="coord r";k.textContent=s[1];b.appendChild(k)}
+    if(r===7){const k=document.createElement("span");k.className="coord f";k.textContent=s[0];b.appendChild(k)}
+    if(p){const t=document.createElement("span");t.className="pc "+p.color;t.textContent=PIECE[p.type];b.appendChild(t)}
+    const tg=targets.find(m=>m.to===s);
+    if(tg){const d=document.createElement("span");d.className=p?"ring":"dot";b.appendChild(d)}
+    b.addEventListener("click",()=>tap(s));
+    el.appendChild(b);
+  }
+}
+
+function arrow(from,to,color){
+  const [x1,y1]=xy(from),[x2,y2]=xy(to);
+  const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy),ux=dx/len,uy=dy/len;
+  const ex=x2-ux*.32,ey=y2-uy*.32, hx=x2-ux*.12, hy=y2-uy*.12;
+  const px=-uy*.22,py=ux*.22, bx=x2-ux*.45,by=y2-uy*.45;
+  return `<line x1="${x1}" y1="${y1}" x2="${ex}" y2="${ey}" stroke="${color}" stroke-width=".16" stroke-linecap="round" opacity=".85"/>`+
+         `<polygon points="${hx},${hy} ${bx+px},${by+py} ${bx-px},${by-py}" fill="${color}" opacity=".85"/>`;
+}
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+function drawArrows(list){document.getElementById("arrows").innerHTML=list.map(a=>arrow(a[0],a[1],css(a[2]))).join("")}
+
+function tap(s){
+  if(answered) return;
+  const p=game.get(s);
+  if(sel){
+    const m=game.moves({verbose:true}).find(m=>m.from===sel&&m.to===s);
+    if(m){ answer(m); return; }
+  }
+  sel=(p&&p.color==="w"&&sel!==s)?s:null;
+  render();
+}
+
+function uciOf(m){return m.from+m.to+(m.promotion||"")}
+
+function answer(m){ // m = verbose move or null for "nothing works"
+  answered=true; sel=null;
+  const isThreat=cur.kind==="threat";
+  let ok, html;
+  const yourMove=`<span class="mv">${cur.move}…${cur.san}</span>`;
+  if(isThreat){
+    ok=!!m && cur.accept.some(u=>u.slice(0,4)===uciOf(m).slice(0,4));
+    const best=`<span class="mv">${cur.move+1}.${cur.reply}</span>`;
+    const what=cur.mate!=null&&cur.mate>0?`It's mate in ${cur.mate}.`:`That swings the position by about ${cur.swing} pawns (from ${fmt(cur.evb)} to ${fmt(cur.eva)} for you).`;
+    const extra=cur.accept_san.length>1?` Also strong: ${cur.accept_san.filter(x=>x!==cur.reply).map(x=>`<span class="mv">${x}</span>`).join(" ")}.`:"";
+    if(ok) html=`<h2>Found it.</h2><p>${m?`<span class="mv">${m.san}</span> punishes ${yourMove}.`:""} ${what}${extra}</p><p>In the game you should have played <span class="mv">${cur.move}…${cur.better}</span> instead.</p>`;
+    else html=`<h2>${m?"Not the one.":"There was a threat."}</h2><p>White's best is ${best}. ${what}${extra}</p><p>Instead of ${yourMove}, the engine wanted <span class="mv">${cur.move}…${cur.better}</span>.</p>`;
+    const g2=new Chess(cur.fen); const rm=g2.move(cur.reply,{sloppy:true});
+    if(rm) drawArrows([[rm.from,rm.to,ok?"--good":"--bad"]]);
+  } else {
+    ok=!m;
+    if(ok) html=`<h2>Correct, it's safe.</h2><p>${yourMove} doesn't hang anything. White's best try is <span class="mv">${cur.reply}</span>, and the position stays about ${fmt(cur.eva)} for you.</p>`;
+    else html=`<h2>False alarm.</h2><p><span class="mv">${m.san}</span> doesn't win anything here. ${yourMove} was a safe move, and White's best is only <span class="mv">${cur.reply}</span>. Over-worrying costs time on the clock, so it's worth getting these right too.</p>`;
+    if(m) drawArrows([[m.from,m.to,"--bad"]]);
+  }
+  // Leitner update
+  const b=boxes[cur.id]||0;
+  boxes[cur.id]= ok? Math.min(5,Math.max(1,b)+1) : 1;
+  seen[cur.id]=turn; turn++;
+  stats.done++; if(ok){stats.ok++;stats.streak++}else stats.streak=0;
+  store.set("tsd-boxes",boxes);store.set("tsd-stats",stats);store.set("tsd-seen",seen);store.set("tsd-turn",turn);
+  document.getElementById("feedback").innerHTML=`<div class="fb ${ok?"ok":"no"}" role="status">${html}</div>`;
+  document.getElementById("actions").hidden=true;
+  const nx=document.getElementById("btn-next"); nx.hidden=false; nx.focus();
+  render(); paintStats();
+}
+function fmt(v){return (v>0?"+":"")+v.toFixed(1)}
+
+function paintStats(){
+  document.getElementById("st-done").textContent=stats.done;
+  document.getElementById("st-acc").textContent=stats.done?Math.round(100*stats.ok/stats.done)+"%":"–";
+  document.getElementById("st-streak").textContent=stats.streak;
+  const counts=[0,0,0,0,0,0]; ITEMS.forEach(it=>counts[boxes[it.id]||0]++);
+  const max=Math.max(...counts,1);
+  document.getElementById("boxes").innerHTML=counts.map((n,i)=>`<div><i style="height:${Math.round(4+40*n/max)}px"></i><span>${n}</span><span>${i===0?"new":"box "+i}</span></div>`).join("");
+}
+
+function next(){
+  cur=pick(); game=new Chess(cur.fen); sel=null; answered=false; hintOn=false;
+  const [y,mo,d]=cur.date.split("-");
+  const res={"0-1":"you won","1-0":"you lost","1/2-1/2":"draw"}[cur.result];
+  document.getElementById("meta").innerHTML=`<span>vs ${cur.opp}</span><span>${mo}/${d}</span><span>move ${cur.move}</span><span>${res}</span>`;
+  document.getElementById("prompt").innerHTML=`You just played <span class="mv">${cur.move}…${cur.san}</span>. White to move. Does White have a move that punishes it?`;
+  document.getElementById("feedback").innerHTML="";
+  document.getElementById("actions").hidden=false;
+  document.getElementById("btn-next").hidden=true;
+  drawArrows([]); render(); paintStats();
+}
+
+document.getElementById("btn-safe").addEventListener("click",()=>{if(!answered)answer(null)});
+document.getElementById("btn-hint").addEventListener("click",()=>{hintOn=!hintOn;render()});
+document.getElementById("btn-next").addEventListener("click",next);
+const nT=ITEMS.filter(i=>i.kind==="threat").length;
+document.getElementById("foot").textContent=`${ITEMS.length} positions from your last 50 games as Black (Sep 23 – Oct 14): ${nT} where your move lost 2.5+ pawns to a check or capture, and ${ITEMS.length-nT} where your move was safe. Tap a White piece, then its target square, to answer. Progress is saved in this browser only.`;
+next();
+</script>
