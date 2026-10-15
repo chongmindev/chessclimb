@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "threatscan": {
+      "command": "uv",
+      "args": ["run", "threatscan-mcp"]
+    }
+  }
+}

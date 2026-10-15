@@ -127,7 +127,7 @@ def test_read_games_detects_color_case_insensitively_and_skips_variants():
 
 # --- real engine on known positions -----------------------------------------------------
 
-needs_engine = pytest.mark.skipif(shutil.which(CFG.engine.path) is None, reason="Stockfish not found")
+needs_engine = pytest.mark.skipif(shutil.which(CFG.engine.path) is None and not shutil.which("stockfish", path="/opt/homebrew/bin:/usr/local/bin"), reason="Stockfish not found")
 
 
 @pytest.fixture

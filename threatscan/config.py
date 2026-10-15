@@ -44,6 +44,14 @@ class ReportConfig:
 
 
 @dataclass(frozen=True)
+class SummaryConfig:
+    opening_end: int
+    middlegame_end: int
+    big_blunder: int
+    opening_plies: int
+
+
+@dataclass(frozen=True)
 class DrillConfig:
     depth: int
     multipv: int
@@ -67,6 +75,7 @@ class Config:
     engine: EngineConfig
     fetch: FetchConfig
     report: ReportConfig
+    summary: SummaryConfig
     drills: DrillConfig
 
 
@@ -79,12 +88,17 @@ def _build(cls, table: dict, section: str):
 
 
 def load(path: str | Path | None = None) -> Config:
-    raw = tomllib.loads(Path(path or DEFAULT_PATH).read_text())
-    engine = dict(raw["engine"])
+    """Relative cache paths resolve against the config file's folder, so the MCP server works from any cwd."""
+    path = Path(path or DEFAULT_PATH).resolve()
+    raw = tomllib.loads(path.read_text())
+    here = lambda p: str(path.parent / p)
+    engine = dict(raw["engine"], cache=here(raw["engine"]["cache"]))
     engine["path"] = os.environ.get("STOCKFISH", engine["path"])
+    raw["fetch"] = dict(raw["fetch"], cache=here(raw["fetch"]["cache"]))
     return Config(
         engine=_build(EngineConfig, engine, "engine"),
         fetch=_build(FetchConfig, {**raw["fetch"], "time_classes": tuple(raw["fetch"]["time_classes"])}, "fetch"),
         report=_build(ReportConfig, raw["report"], "report"),
+        summary=_build(SummaryConfig, raw["summary"], "summary"),
         drills=_build(DrillConfig, raw["drills"], "drills"),
     )

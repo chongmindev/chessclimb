@@ -6,6 +6,8 @@ depends only on (FEN, depth, MultiPV) and is safe to cache.
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
@@ -27,6 +29,16 @@ class Line:
         return self.cp if color == chess.WHITE else -self.cp
 
 
+EXTRA_BIN = ("/opt/homebrew/bin", "/usr/local/bin")   # apps launched from the Dock don't get the shell PATH
+
+
+def find_stockfish(path: str) -> str:
+    found = shutil.which(path, path=os.pathsep.join([os.environ.get("PATH", ""), *EXTRA_BIN]))
+    if not found:
+        raise FileNotFoundError(f"Stockfish not found ({path!r}); install it or set $STOCKFISH")
+    return found
+
+
 class Engine:
     def __init__(self, cfg: EngineConfig, cache_path: str | Path | None = None):
         self.cfg = cfg
@@ -40,7 +52,7 @@ class Engine:
 
     def _engine(self) -> chess.engine.SimpleEngine:
         if self._uci is None:
-            self._uci = chess.engine.SimpleEngine.popen_uci(self.cfg.path)
+            self._uci = chess.engine.SimpleEngine.popen_uci(find_stockfish(self.cfg.path))
             self._uci.configure({"Threads": self.cfg.threads, "Hash": self.cfg.hash_mb})
         return self._uci
 

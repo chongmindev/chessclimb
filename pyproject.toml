@@ -3,10 +3,14 @@ name = "threatscan"
 version = "0.1.0"
 description = "Drill the defensive scan: what can my opponent do after my move?"
 requires-python = ">=3.12"
-dependencies = ["chess==1.11.2"]
+dependencies = [
+    "chess==1.11.2",
+    "mcp==2.3.0",
+]
 
 [project.scripts]
 threatscan = "threatscan.cli:main"
+threatscan-mcp = "threatscan.server:main"
 
 [dependency-groups]
 dev = ["pytest>=8"]

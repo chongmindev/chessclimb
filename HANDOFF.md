@@ -34,6 +34,7 @@ uv run threatscan report data/<games>.pgn data/analysis.json --user Dudacio
 uv run threatscan drills data/<games>.pgn data/items.json --user Dudacio [--color white|black|both]
 uv run threatscan page data/items.json trainer/trainer_template.html trainer/threat-scan-drill.html
 uv run pytest
+uv run threatscan-mcp   # MCP server over stdio
 ```
 Engine evals are cached by (FEN, depth, MultiPV) in `data/engine_cache.sqlite`, so reruns are fast.
 Item ids are a hash of FEN + move, so trainer progress survives rebuilds.
@@ -66,7 +67,9 @@ Item ids are a hash of FEN + move, so trainer progress survives rebuilds.
 1. ~~Clean up the pipeline into a package~~ (done 2026-10-14).
 2. ~~Chess.com fetch~~ (done 2026-10-14): monthly archives only, serial requests 1 s apart, past months
    cached in `data/chesscom_cache/`, rapid only by default (`[fetch]` in config.toml).
-3. **MCP server** exposing:
+3. ~~MCP server~~ (done 2026-10-15): `uv run threatscan-mcp` (stdio; `.mcp.json` registers it for Claude Code
+   in this folder). Engine tools run as background jobs on one worker thread and return progress until done;
+   a job is keyed by the exact set of games, so new games start a new job. Originally specified as:
    - `fetch_games(username, months)` — finished games only
    - `analyze_games(username, months, color)` — engine report (like analysis.json)
    - `get_drill_positions(username, ...)` — items.json shape
