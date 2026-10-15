@@ -62,8 +62,8 @@ function setupTheme() {
   const paint = () => {
     const dark = document.documentElement.dataset.theme === "dark";
     btn.setAttribute("aria-pressed", String(dark));
-    $("theme-label").textContent = dark ? "Day" : "Night";
     btn.title = dark ? "Switch to day mode" : "Switch to night mode";
+    btn.setAttribute("aria-label", btn.title);
     document.querySelector('meta[name="theme-color"]').content = dark ? "#0e0e10" : "#ffffff";
   };
   btn.addEventListener("click", () => {

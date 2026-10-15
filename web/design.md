@@ -70,7 +70,7 @@ and right/wrong is a word plus inversion/frame and a solid/dashed arrow.
 
 ## Night mode
 
-One button in the bar ("Night" / "Day") swaps the theme; the choice is saved in the browser, and with
+One icon button in the bar (moon by day, sun by night; labelled for screen readers) swaps the theme; the choice is saved in the browser, and with
 none saved the system setting decides. An inline script in `<head>` applies it before first paint.
 
 Components never name a color directly: they use `--paper` and `--ink` (which swap), `--tint` for

@@ -318,10 +318,10 @@ svg.arrows line { stroke: var(--ink); }
 svg.arrows polygon { fill: var(--ink); }
 
 /* Theme switch */
-.theme-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 10px; border: var(--thin); background: transparent; color: var(--ink); cursor: pointer; font: 500 0.75rem var(--f-mono); letter-spacing: var(--track-label); text-transform: uppercase; transition: background var(--t), color var(--t); }
+.theme-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border: var(--thin); background: transparent; color: var(--ink); cursor: pointer; font: 500 0.75rem var(--f-mono); letter-spacing: var(--track-label); text-transform: uppercase; transition: background var(--t), color var(--t); }
 .theme-btn:hover { background: var(--ink); color: var(--paper); }
 .theme-btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
-.theme-btn .icon { width: 16px; height: 16px; }
+.theme-btn .icon { width: 18px; height: 18px; }
 .theme-btn .sun { display: none; }
 :root[data-theme="dark"] .theme-btn .sun { display: block; }
 :root[data-theme="dark"] .theme-btn .moon { display: none; }
