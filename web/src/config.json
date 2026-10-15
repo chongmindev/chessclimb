@@ -1,0 +1,32 @@
+{
+  "_note": "generated from config.toml by tools/export_config.py; do not edit",
+  "engine": {
+    "mate_score": 10000,
+    "eval_cap": 2000
+  },
+  "drills": {
+    "depth": 13,
+    "multipv": 5,
+    "seed": 3,
+    "threat_min_loss": 250,
+    "threat_min_before": -300,
+    "threat_min_move": 3,
+    "accept_within": 80,
+    "accept_min_gain": 200,
+    "safe_max_loss": 25,
+    "safe_min_move": 8,
+    "safe_after_min": -150,
+    "safe_after_max": 400,
+    "safe_max_opp_eval": 150,
+    "safe_sample_rate": 0.3,
+    "safe_ratio": 0.6
+  },
+  "fetch": {
+    "base_url": "https://api.chess.com/pub",
+    "min_interval": 1.0,
+    "months": 2,
+    "time_classes": [
+      "rapid"
+    ]
+  }
+}

@@ -1,4 +1,5 @@
 import io
+from dataclasses import replace
 import shutil
 
 import chess
@@ -167,3 +168,25 @@ def test_engine_handles_game_over(engine):
         board.push_san(san)
     [line] = engine.analyse(board, 8)
     assert line.move is None and line.pov(chess.BLACK) == CFG.engine.mate_score
+
+
+def test_safe_sampling_does_not_depend_on_game_order():
+    c = replace(CFG, drills=replace(D, safe_sample_rate=0.5, safe_ratio=100))
+    a = game_from("e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6 d3 d6 O-O O-O Re1 a6 Bb3 Ba7 h3 h6 Nbd2 Re8 Nf1 Be6")
+    b = game_from("d4 d5 c4 e6 Nc3 Nf6 Bg5 Be7 e3 O-O Nf3 h6 Bh4 b6 cxd5 exd5 Bd3 Bb7 O-O c5 Rc1 Nbd7")
+    threat = game_from("e4 e5 Qh5 Nc6 Bc4 Nf6 Qxf7#", result="1-0")    # the cap needs a threat item
+    after_nf6 = chess.Board()
+    for san in "e4 e5 Qh5 Nc6 Bc4 Nf6".split():
+        after_nf6.push_san(san)
+    eng = lambda: FakeEngine(evals={after_nf6.fen(): [Line("h5f7", 10000, 1)]})
+    one = build_items([threat, a, b], eng(), c)
+    two = build_items([b, threat, a], eng(), c)
+    assert sorted(i["id"] for i in one) == sorted(i["id"] for i in two)
+    assert any(i["kind"] == "safe" for i in one)
+    # adding a game never removes a safe item that was already chosen (cap not binding here)
+    assert {i["id"] for i in build_items([threat, a], eng(), c)} <= {i["id"] for i in one}
+
+
+def test_pawns_rounds_halves_away_from_zero():
+    from threatscan.drills import pawns
+    assert [pawns(v) for v in (25, 15, 45, -25, -24, 0, 1980, -2000)] == [0.3, 0.2, 0.5, -0.3, -0.2, 0.0, 19.8, -20.0]

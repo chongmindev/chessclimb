@@ -1,0 +1,14 @@
+{
+  "name": "threatscan-web",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "chess.js": "1.4.0",
+    "stockfish": "19.0.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "build": "node build.mjs",
+    "serve": "npm run build && python3 -m http.server 8080 -d dist"
+  }
+}

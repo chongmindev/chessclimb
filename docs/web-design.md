@@ -1,6 +1,6 @@
 # Threat Scan for anyone: in-browser design
 
-Status: draft for review (2026-10-15).
+Status: being built (2026-10-15). Measurements and choices are in `docs/decisions.md`.
 
 ## Goal
 
@@ -40,11 +40,10 @@ page (UI) ── username ─► fetch worker ── Chess.com archives (cached 
 ```
 
 ### Engine pool
-- Lite build. Multi-threaded when the page is cross-origin isolated (headers set via Cloudflare
-  `_headers`), else lite single-threaded workers.
-- Pool size from `navigator.hardwareConcurrency`, leaving one core for the UI. Each worker takes a game.
-- Engine choice is a measured decision, not an assumption: compare lite vs. full-net results on the
-  reference games (below) before shipping.
+- Lite single-threaded build, one engine per core (`hardwareConcurrency - 1`, max 8), each on its own
+  game. Measured faster than the multi-threaded build at a fixed depth, and it needs no cross-origin
+  isolation, so no special headers.
+- Whether lite picks the same drills as the native full engine is measured by `tools/measure_lite.py`.
 
 ### Two-pass scan (the main speed lever)
 1. **Screen** every position at a shallow depth (cheap).
@@ -90,7 +89,7 @@ no false threats). Recorded in `docs/decisions.md`.
 ## Hosting
 
 - Cloudflare Pages, static build from the repo, `*.pages.dev` address.
-- `_headers` sets COOP/COEP for the app path. Engine files served from the same origin.
+- Engine files served from the same origin; `_headers` only sets caching and basic security headers.
 - GPLv3 notice and a link to the stockfish.js source in the footer.
 
 ## Open questions

@@ -1,0 +1,82 @@
+/* Design tokens: Industrial Skeuomorphism. The only place raw colors, shadows, radii and easings live.
+   Light source: top-left at 45 degrees. Every highlight is top/left, every shadow bottom/right.
+   See web/design.md for the rules behind each token. */
+:root {
+  color-scheme: light;
+
+  /* Materials */
+  --chassis: #e0e5ec;          /* Level 0: matte ABS plastic, the page */
+  --panel: #f0f2f5;            /* raised panel surface, used sparingly */
+  --recessed: #d1d9e6;         /* Level -1: wells, grooves, bezels */
+  --ink: #2d3436;              /* primary text */
+  --ink-muted: #4a5568;        /* labels, metadata (6.8:1 on chassis) */
+  --shade: #babecc;            /* darker half of every neumorphic pair */
+  --highlight: #ffffff;        /* lighter half */
+  --shade-deep: #a3b1c6;       /* prominent dividers */
+
+  /* Safety orange, split by job so text always passes WCAG AA */
+  --accent: #ff4757;           /* LEDs, glows, fills, focus rings. Never small text. */
+  --accent-face: #d92b3a;      /* key faces under white text (4.8:1) */
+  --accent-ink: #b8222f;       /* accent-colored text on chassis (5.0:1) */
+  --on-accent: #ffffff;
+
+  /* Status LEDs */
+  --led-green: #22c55e;
+  --led-amber: #f5a524;
+  --led-red: var(--accent);
+
+  /* Dark technical surfaces (displays, device bezel) */
+  --display: #2d3436;
+  --display-deep: #1f2527;
+  --display-ink: #e0e5ec;
+  --display-ink-muted: #a8b2d1;
+
+  /* Chess board, mounted inside the device */
+  --sq-light: #eef1f5;
+  --sq-dark: #9aa9be;
+  --sq-last: rgba(245, 165, 36, 0.5);
+  --pc-white: #fbfbf8;
+  --pc-black: #2d3436;
+  --pc-edge: #2d3436;
+
+  /* Type */
+  --f-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --f-piece: "Noto Sans Symbols 2", "Segoe UI Symbol", "DejaVu Sans", serif;
+  --emboss: 0 1px 0 var(--highlight);
+
+  /* Radius: injection-molded, never machined-sharp */
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+  --r-2xl: 32px;
+  --r-full: 9999px;
+
+  /* Elevation */
+  --shadow-card: 8px 8px 16px var(--shade), -8px -8px 16px var(--highlight);
+  --shadow-floating: 12px 12px 24px var(--shade), -12px -12px 24px var(--highlight), inset 1px 1px 0 rgba(255, 255, 255, 0.5);
+  --shadow-key: 5px 5px 10px var(--shade), -5px -5px 10px var(--highlight);
+  --shadow-pressed: inset 6px 6px 12px var(--shade), inset -6px -6px 12px var(--highlight);
+  --shadow-recessed: inset 4px 4px 8px var(--shade), inset -4px -4px 8px var(--highlight);
+  --shadow-sharp: 4px 4px 8px rgba(0, 0, 0, 0.15), -1px -1px 1px rgba(255, 255, 255, 0.8);
+  --shadow-accent-key: 4px 4px 8px rgba(166, 50, 60, 0.4), -4px -4px 8px rgba(255, 100, 110, 0.4);
+  --glow-accent: 0 0 10px 2px rgba(255, 71, 87, 0.6);
+  --glow-green: 0 0 10px 2px rgba(34, 197, 94, 0.6);
+  --glow-amber: 0 0 10px 2px rgba(245, 165, 36, 0.6);
+
+  /* Motion: spring-loaded switches */
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --t-press: 150ms;
+  --t-move: 300ms;
+
+  /* Layout */
+  --container: 72rem;
+  --gutter: 16px;
+  --touch: 48px;
+}
+
+@media (min-width: 768px) {
+  :root { --gutter: 48px; }
+}

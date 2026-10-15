@@ -37,7 +37,7 @@ opening_plies = 2         # results by opening group games by this many first ha
 [drills]
 depth = 13
 multipv = 5
-seed = 3
+seed = 3                  # salt for the per-position hash that samples safe items
 
 # threat item: my move lost a lot, I wasn't already lost, opponent's best reply is a check or capture
 threat_min_loss = 250

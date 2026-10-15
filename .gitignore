@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 .pytest_cache/
 trainer/threat-scan-drill.html
+web/node_modules/
+web/dist/

@@ -6,7 +6,7 @@ A *safe* item is a move that cost nothing (recognise there is no punishment).
 from __future__ import annotations
 
 import hashlib
-import random
+import math
 from dataclasses import dataclass
 from typing import Iterable, Iterator
 
@@ -82,7 +82,7 @@ def threat_item(c: DrillConfig, p: Ply, lines: list[Line], cap: int) -> dict | N
                 accept=[l.move for l in accept],
                 accept_san=[p.board.san(chess.Move.from_uci(l.move)) for l in accept],
                 reply=p.board.san(top_mv), mate=mate, better=p.best_san,
-                swing=round(p.loss / 100, 1))
+                swing=pawns(p.loss))
 
 
 def safe_item(c: DrillConfig, p: Ply, lines: list[Line], cap: int) -> dict | None:
@@ -95,6 +95,18 @@ def safe_item(c: DrillConfig, p: Ply, lines: list[Line], cap: int) -> dict | Non
     return dict(_base(p), kind="safe", reply=p.board.san(chess.Move.from_uci(top.move)))
 
 
+def pawns(cp: int) -> float:
+    """Centipawns to pawns at one decimal, halves away from zero, in integers so the JS port matches exactly."""
+    tenths = (abs(cp) + 5) // 10
+    return (tenths if cp >= 0 else -tenths) / 10
+
+
+def sample_key(seed: int, fen: str, move: chess.Move) -> float:
+    """A number in [0, 1) fixed by the position and move. Safe items are sampled and capped by it, so the
+    choice doesn't depend on game order and stays put when new games are added."""
+    return int(hashlib.sha1(f"{seed} {fen} {move.uci()}".encode()).hexdigest()[:13], 16) / 16 ** 13
+
+
 def item_id(fen: str, move: chess.Move) -> str:
     """Stable across rebuilds, so spaced-repetition progress keeps pointing at the same position."""
     return hashlib.sha1(f"{fen} {move.uci()}".encode()).hexdigest()[:12]
@@ -105,12 +117,12 @@ def _base(p: Ply) -> dict:
             "color": "w" if p.game.color == chess.WHITE else "b",
             "from": chess.square_name(p.move.from_square), "to": chess.square_name(p.move.to_square),
             "san": p.san, "move": p.move_number, "opp": p.game.opponent, "date": p.game.date,
-            "result": p.game.result, "evb": round(p.before / 100, 1), "eva": round(p.after / 100, 1)}
+            "result": p.game.result, "evb": pawns(p.before), "eva": pawns(p.after),
+            **({"link": link} if (link := p.game.headers.get("Link")) else {})}
 
 
 def build_items(games: Iterable[Game], engine: Engine, cfg: Config) -> list[dict]:
     c, cap = cfg.drills, cfg.engine.eval_cap
-    rng = random.Random(c.seed)
     threats, safes = [], []
     for game in games:
         for p in walk(game, engine, c.depth, cap):
@@ -118,9 +130,9 @@ def build_items(games: Iterable[Game], engine: Engine, cfg: Config) -> list[dict
                 item = threat_item(c, p, engine.analyse(p.board, c.depth, c.multipv), cap)
                 if item:
                     threats.append(item)
-            elif is_safe_candidate(c, p) and rng.random() < c.safe_sample_rate:
+            elif is_safe_candidate(c, p) and (key := sample_key(c.seed, p.board.fen(), p.move)) < c.safe_sample_rate:
                 item = safe_item(c, p, engine.analyse(p.board, c.depth, c.multipv), cap)
                 if item:
-                    safes.append(item)
-    rng.shuffle(safes)
-    return threats + safes[:round(len(threats) * c.safe_ratio)]
+                    safes.append((key, item))
+    safes.sort(key=lambda s: s[0])
+    return threats + [item for _, item in safes[:math.floor(len(threats) * c.safe_ratio + 0.5)]]
