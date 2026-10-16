@@ -313,7 +313,6 @@ body[data-view="drill"] .form:not(.open) .form-summary { display: flex; }
     border-top: 1px solid color-mix(in srgb, var(--paper) 35%, transparent); }
   .scan { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .scan > .label { grid-column: 1 / -1; }
-  .line > .label:first-child { display: none; }
   .scan .chip { justify-content: center; padding: 0 8px; }
 }
 
@@ -325,35 +324,33 @@ body[data-view="drill"] .form:not(.open) .form-summary { display: flex; }
 /* Where you are: step label, and the line of moves you can step through (← →) */
 .step-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; margin-top: -4px; }
 .step { margin: 0; color: var(--accent); font-weight: 700; }
-.line { display: flex; align-items: center; gap: 8px; }
-.line > .label:first-child { width: 72px; flex: none; }
-/* One row; scrolls sideways when the moves don't fit */
-.plies { position: relative; display: flex; gap: 6px; margin: 0; padding: 0; list-style: none; min-width: 0; overflow-x: auto; scrollbar-width: none; }
-.plies li { flex: none; }
-.step-btn { flex: none; }
-.ply { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 10px; border: var(--thin); background: var(--paper);
-  color: var(--ink); cursor: pointer; font: 500 0.8125rem var(--f-mono); transition: background var(--t), color var(--t); }
-.ply:hover { background: var(--tint); }
-.ply.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-.ply.start { font-style: italic; }
-.ply.fix { border-style: dashed; }
-.ply .cap { width: 18px; height: 18px; flex: none; }
-.ply.on .cap { background-color: var(--sq-light); }
-.step-btn { display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; border: var(--thin); background: transparent;
-  color: var(--ink); cursor: pointer; transition: background var(--t), color var(--t); }
-.step-btn:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
-.step-btn:disabled { opacity: 0.3; cursor: default; }
-.step-btn:focus-visible, .ply:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 .card .sub { font: 500 0.6875rem/1.3 var(--f-mono); letter-spacing: var(--track-label); text-transform: uppercase; opacity: 0.85; }
 
-/* Why the better move works: a short list under the cards */
-.why { display: grid; gap: 6px; padding-top: 10px; border-top: 1px solid color-mix(in srgb, currentColor 30%, transparent); }
-.fb.ok .why .label { color: color-mix(in srgb, var(--paper) 70%, transparent); }
-.why ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 0.9375rem; line-height: 1.4; }
-.why b { font: 600 0.9em var(--f-mono); white-space: nowrap; }
-.why-wait { margin: 0; font-style: italic; opacity: 0.75; }
-.why-hint { margin: 0; }
-.ply.pv { border-style: dotted; }
+/* The idea: the engine's line, one caption per move, revealed as the board plays it */
+.walk { display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid color-mix(in srgb, currentColor 30%, transparent); }
+.fb.ok .walk .label { color: color-mix(in srgb, var(--paper) 70%, transparent); }
+.walk-wait { margin: 0; font-style: italic; opacity: 0.75; }
+.walk-steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.walk-steps li { display: grid; grid-template-columns: 6.5em 1fr; gap: 10px; align-items: baseline; padding: 3px 8px;
+  font-size: 0.9375rem; line-height: 1.35; border-left: 3px solid transparent; opacity: 0.6; transition: opacity var(--t); }
+.walk-steps li:only-child, .walk-steps li.on { opacity: 1; border-left-color: var(--accent); }
+.walk-steps li b { font: 600 0.875rem var(--f-mono); white-space: nowrap; }
+.walk-steps li span b { font: 600 0.9em var(--f-mono); }
+.walk-steps .walk-sum { display: block; opacity: 1; font-style: italic; font-family: var(--f-display); font-size: 1.125rem; padding-left: 11px; }
+.walk-steps li:not([hidden]) { animation: walk-in 220ms ease-out; }
+@keyframes walk-in { from { opacity: 0; transform: translateY(4px); } }
+.walk-replay { justify-self: start; display: inline-flex; align-items: center; gap: 6px; }
+.walk-replay .icon { width: 16px; height: 16px; }
+
+/* Rewind before the fix step: the board dims, a tag shows, and the moves run backwards */
+.rewind-tag { position: absolute; top: 10px; left: 10px; z-index: 4; display: none; align-items: center; gap: 6px; padding: 4px 10px;
+  background: var(--no-bg); color: var(--no-fg); font: 700 0.75rem var(--f-mono); letter-spacing: var(--track-label); text-transform: uppercase; pointer-events: none; }
+.rewind-tag .icon { width: 16px; height: 16px; fill: currentColor; stroke: none; }
+.boardbox.rewinding .rewind-tag { display: inline-flex; animation: rewind-blink 0.6s steps(1) infinite; }
+.boardbox.rewinding .board { filter: saturate(0.35) brightness(0.92); transition: filter 200ms; }
+.boardbox.rewinding::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 3;
+  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(0, 0, 0, 0.06) 3px 4px); }
+@keyframes rewind-blink { 50% { opacity: 0.55; } }
 
 /* Verdicts: a badge on the square you moved to, and a check that pops over the board when you get it */
 .sq .verdict { position: absolute; top: 3%; right: 3%; width: 36%; height: 36%; display: grid; place-items: center; z-index: 2;

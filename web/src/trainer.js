@@ -5,11 +5,13 @@
 //   fix:  for a real blunder, the board rewinds to before my move: play what I should have played.
 //         The engine judges it (within trainer.fix_tolerance of the best eval counts); "Show me" gives up.
 //
-// The positions seen so far form a line (frames): before my move, after it, after their reply, and my fix
-// (a branch from "before"). ← / → or the line row step through them; moves slide, captures fade.
+// The positions seen so far form a line (frames): before my move, after it, after their reply, my fix (a branch
+// from "before") and the engine's line after it. Moving between neighbouring frames slides the piece; captures
+// fade. A new position plays my move from "before"; the fix step rewinds their reply and my move; at the end
+// the engine's line is walked through on the board with a caption per move.
 
 import { Chess } from "chess.js";
-import { explainFix, material, numbered } from "./explain.js";
+import { material, numbered, walkthrough } from "./explain.js";
 
 export { material };
 
@@ -18,6 +20,9 @@ const FILES = "abcdefgh";
 const RESULT = { win: "Won", loss: "Lost", draw: "Drawn" };
 const EVAL_SPAN = 6;   // the eval bar runs from -6 to +6 pawns; beyond that (or mate) pins to the end
 const SLIDE_MS = 260;     // one move's slide
+const REWIND_MS = 420;    // a move played backwards, slower so it reads as a rewind
+const WALK_MS = 1700;     // time on each move of the walkthrough
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const INTRO_MS = 450;     // a new position shows "before" this long, then my move plays
 const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -54,7 +59,7 @@ export function evalX(pawns, mate = false) {
 export class Trainer {
   /**
    * els: {board, arrows, pop, meta, step, playedLabel, played, question, scan, actions, safe, reveal, fixRow, showMe,
-   *       plies, prev, fwd, material, feedback, next, fixGo, side, boxes, done, acc, streak}
+   *       material, feedback, next, fixGo, side, boxes, done, acc, streak}
    * evaluate(fen) -> Promise<{cp, mate}> from White's view; used by the fix step. tolerance in centipawns.
    * cue(kind): "right" / "wrong", for a sound.
    * analyse(fen) -> Promise<[{cp, mate, pv}]> from White's view, with the whole line; used to explain the fix.
@@ -70,15 +75,6 @@ export class Trainer {
     els.showMe.addEventListener("click", () => this.showFix());
     els.next.addEventListener("click", () => this.next());
     els.fixGo.addEventListener("click", () => this.startFix());
-    els.prev.addEventListener("click", () => this.goto(this.view - 1));
-    els.fwd.addEventListener("click", () => this.goto(this.view + 1));
-    els.plies.addEventListener("click", (e) => { const b = e.target.closest("[data-i]"); if (b) this.goto(+b.dataset.i); });
-    document.addEventListener("keydown", (e) => {
-      if (!this.cur || e.altKey || e.ctrlKey || e.metaKey || !els.board.offsetParent) return;
-      if (e.target.closest?.("input, textarea, select, .dropdown, [contenteditable]")) return;
-      if (e.key === "ArrowLeft") { e.preventDefault(); this.goto(this.view - 1); }
-      else if (e.key === "ArrowRight") { e.preventDefault(); this.goto(this.view + 1); }
-    });
     els.scan.addEventListener("click", (e) => {
       const chip = e.target.closest("[data-kind]");
       if (!chip || this.step !== "find") return;
@@ -162,7 +158,7 @@ export class Trainer {
     }
     this.els.arrows.innerHTML = this.arrowFrame === this.view
       ? this.arrowList.map(([f, t, dashed]) => this.arrow(f, t, dashed)).join("") : "";
-    this.paintLine();
+    this.paintMaterial();
     if (anim) this.animate(anim);
   }
 
@@ -175,40 +171,27 @@ export class Trainer {
   }
 
   /** Show frame i. Moving to a child frame plays its move; moving back to the parent plays it in reverse. */
-  goto(i, { quiet = false } = {}) {
+  goto(i, { quiet = false, ms = SLIDE_MS } = {}) {
     clearTimeout(this.introTimer);
-    if (i < 0 || i >= this.frames.length || (i === this.view && !quiet)) return;
+    if (i == null || i < 0 || i >= this.frames.length || (i === this.view && !quiet)) return;
     const from = this.view, fr = this.frames[i], old = this.frames[from];
     let anim = null;
-    if (fr.parent === from && fr.move?.from) anim = { move: fr.move, reverse: false };
-    else if (old?.parent === i && old.move?.from) anim = { move: old.move, reverse: true };
+    if (fr.parent === from && fr.move?.from) anim = { move: fr.move, reverse: false, ms };
+    else if (old?.parent === i && old.move?.from) anim = { move: old.move, reverse: true, ms };
     this.view = i;
     this.game = new Chess(fr.fen);
     this.sel = null;
     this.render(anim);
   }
 
-  paintLine() {
-    const icon = (color, type) => `<span class="cap pc ${color}${type.toUpperCase()}" aria-hidden="true"></span>`;
-    this.els.plies.innerHTML = this.frames.map((fr, i) => {
-      const m = fr.move, cap = m?.captured ? icon(m.color === "w" ? "b" : "w", m.captured) : "";
-      const name = fr.san ? esc(fr.san) : "Start";
-      const title = !m ? "Before your move" : m.captured ? `${fr.san} takes a ${NAME[m.captured]}` : fr.san;
-      return `<li><button type="button" class="ply ${fr.who || "start"}${i === this.view ? " on" : ""}" data-i="${i}"` +
-        ` aria-current="${i === this.view ? "step" : "false"}" title="${esc(title)}">${name}${cap}</button></li>`;
-    }).join("");
-    const on = this.els.plies.querySelector(".on"), box = this.els.plies;   // keep the shown move in the row's view
-    if (on && (on.offsetLeft < box.scrollLeft || on.offsetLeft + on.offsetWidth > box.scrollLeft + box.clientWidth))
-      box.scrollLeft = on.offsetLeft + on.offsetWidth - box.clientWidth;
-    this.els.prev.disabled = this.view <= 0;
-    this.els.fwd.disabled = this.view >= this.frames.length - 1;
+  paintMaterial() {
     const fr = this.frames[this.view];
     if (!fr) return;
     const mat = material(fr.fen) * (this.meW() ? 1 : -1);
     this.els.material.textContent = mat ? `Material: you ${mat > 0 ? "+" : "−"}${Math.abs(mat)}` : "Material: even";
   }
 
-  animate({ move, reverse }) {
+  animate({ move, reverse, ms = SLIDE_MS }) {
     if (reducedMotion()) return;
     const board = this.els.board, size = board.clientWidth / 8;
     const square = (s) => board.querySelector(`[data-sq="${s}"]`);
@@ -218,7 +201,7 @@ export class Trainer {
       const [x1, y1] = this.xy(a), [x2, y2] = this.xy(b);
       sq.style.zIndex = 3;
       const an = pc.animate([{ transform: `translate(${(x1 - x2) * size}px, ${(y1 - y2) * size}px)` }, { transform: "none" }],
-        { duration: SLIDE_MS, easing: "cubic-bezier(.2,.7,.3,1)" });
+        { duration: ms, easing: "cubic-bezier(.2,.7,.3,1)" });
       an.onfinish = () => { sq.style.zIndex = ""; };
     };
     const [a, b] = reverse ? [move.to, move.from] : [move.from, move.to];
@@ -234,12 +217,12 @@ export class Trainer {
     if (!sq) return;
     if (reverse) {      // the captured piece comes back
       const pc = [...sq.querySelectorAll(".pc")].find((p) => p.className === capClass);
-      pc?.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: SLIDE_MS, delay: SLIDE_MS / 2, fill: "backwards" });
+      pc?.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: ms, delay: ms / 2, fill: "backwards" });
     } else {            // the captured piece fades under the arriving one
       const ghost = document.createElement("span");
       ghost.className = capClass + " ghost";
       sq.insertBefore(ghost, sq.querySelector(".pc"));
-      const an = ghost.animate?.([{ opacity: 1 }, { opacity: 0 }], { duration: SLIDE_MS * 1.4, easing: "ease-in" });
+      const an = ghost.animate?.([{ opacity: 1 }, { opacity: 0 }], { duration: ms * 1.4, easing: "ease-in" });
       if (an) an.onfinish = () => ghost.remove(); else ghost.remove();
     }
   }
@@ -278,7 +261,7 @@ export class Trainer {
 
   tap(s) {
     if (!this.live() || this.busy) return;
-    if (this.view !== this.liveIdx) return this.goto(this.liveIdx);   // stepping back through the line: return first
+    if (this.view !== this.liveIdx) return this.goto(this.liveIdx);   // still showing "before" (intro): jump to the position
     const p = this.game.get(s);
     if (this.sel) {
       const m = this.game.moves({ verbose: true }).find((m) => m.from === this.sel && m.to === s);
@@ -375,8 +358,9 @@ export class Trainer {
 
   // ---------- step 2: fix my move ----------
 
-  startFix() {
+  async startFix() {
     if (this.step !== "found") return;
+    const cur = this.cur;
     this.step = "fix";
     this.fixTries = 0;
     this.liveIdx = this.beforeIdx;
@@ -388,7 +372,26 @@ export class Trainer {
     this.els.fixRow.hidden = false;
     this.els.showMe.hidden = true;
     this.paintStep();
-    this.goto(this.beforeIdx, { quiet: true });
+    // Play their reply and my move backwards, marked as a rewind, then hand the board over.
+    this.busy = true;
+    await this.rewind([this.findIdx, this.beforeIdx]);
+    if (this.cur !== cur || this.step !== "fix") return;
+    this.busy = false;
+    this.render();
+  }
+
+  async rewind(path) {
+    const box = this.els.board.parentElement, motion = !reducedMotion();
+    box.classList.add("rewinding");
+    this.els.step.textContent = "Rewinding to before your move";
+    if (motion) await sleep(220);
+    for (const i of path) {
+      if (i == null || i === this.view) continue;
+      this.goto(i, { ms: REWIND_MS });
+      if (motion) await sleep(REWIND_MS + 160);
+    }
+    box.classList.remove("rewinding");
+    this.paintStep();
   }
 
   async tryFix(m) {
@@ -452,37 +455,69 @@ export class Trainer {
     const note = evalAfter == null ? "" : `<div class="evalbar-note label">After ${esc(san)} ${fmt(evalAfter)} · best ${fmt(cur.evb)}</div>`;
     this.feedback(!shown && this.firstTry === true, shown ? "Here's the fix" : this.firstTry ? "Found and fixed" : "Fixed", cards, note);
     this.finish();
-    this.explainWhy(cur);
+    this.walk(cur);
   }
 
-  /** "Why 30.Rxe5": what my move allowed, what the better move does, and the engine's line (added to the line row). */
-  async explainWhy(cur) {
+  /** The idea behind the engine's move: its line played on the board, a caption per move (or one line if quiet). */
+  async walk(cur) {
     const fb = this.els.feedback.querySelector(".fb");
     if (!fb || !cur.better || !cur.before_fen) return;
-    const head = `<p class="label">Why ${esc(num(cur.move, this.meW(), cur.better))}</p>`;
-    const why = document.createElement("div");
-    why.className = "why";
-    why.innerHTML = head + `<p class="why-wait">Working it out…</p>`;
-    fb.appendChild(why);
-    let line = null, punish = null;
+    const token = this.walkToken = {};
+    const head = `<p class="label">The idea · ${esc(num(cur.move, this.meW(), cur.better))}</p>`;
+    const box = document.createElement("div");
+    box.className = "walk";
+    box.innerHTML = head + `<p class="walk-wait">Working it out…</p>`;
+    fb.appendChild(box);
+    let line = null;
     try {
-      const bm = new Chess(cur.before_fen).move(cur.better), pm = new Chess(cur.before_fen).move(cur.san);
-      if (this.analyse) [[line], [punish]] = await Promise.all([this.analyse(bm.after), this.analyse(pm.after)]);
+      const bm = new Chess(cur.before_fen).move(cur.better);
+      if (this.analyse) [line] = await this.analyse(bm.after);
     } catch {}
-    if (this.cur !== cur) return;
-    let ex;
-    try {
-      ex = explainFix({ before: cur.before_fen, played: cur.san, reply: cur.reply, better: cur.better, line, punish,
-        evb: cur.evb, eva: cur.eva, mate: cur.mate });
-    } catch { why.remove(); return; }
-    // The engine's move and its line become frames, so → plays them on the board.
+    if (this.walkToken !== token) return;
+    let w;
+    try { w = walkthrough({ before: cur.before_fen, played: cur.san, reply: cur.reply, better: cur.better, line }); }
+    catch { box.remove(); return; }
+    // The engine's move (a branch from "before", unless it was the fix just played) and its line become frames.
     let at = this.frames.findIndex((f) => f.parent === this.beforeIdx && f.move?.san === cur.better);
-    const [first, ...rest] = ex.plies;
-    if (at < 0) at = this.addFrame(first.after, first.move, this.beforeIdx, "fix", numbered(first.before, first.move));
-    for (const p of rest) at = this.addFrame(p.after, p.move, at, "pv", numbered(p.before, p.move));
-    why.innerHTML = head + `<ul>${ex.points.map((p) => `<li>${p}</li>`).join("")}</ul>` +
-      (rest.length ? `<p class="why-hint label">→ plays the best line on the board</p>` : "");
-    this.paintLine();
+    const idx = w.steps.map(({ ply }, k) => {
+      if (k === 0) return at >= 0 ? at : (at = this.addFrame(ply.after, ply.move, this.beforeIdx, "fix", numbered(ply.before, ply.move)));
+      return (at = this.addFrame(ply.after, ply.move, at, "pv", numbered(ply.before, ply.move)));
+    });
+    box.innerHTML = head + `<ol class="walk-steps">` +
+      w.steps.map((st, k) => `<li${k ? " hidden" : ""}><b>${esc(numbered(st.ply.before, st.ply.move))}</b><span>${st.text}</span></li>`).join("") +
+      (w.idea ? `<li class="walk-sum" hidden>${esc(w.summary)}</li>` : "") + `</ol>` +
+      (w.idea ? `<button class="btn ghost walk-replay" type="button" hidden><svg class="icon"><use href="#i-replay"/></svg>Replay</button>` : "");
+    box.querySelector(".walk-replay")?.addEventListener("click", () => { this.walkToken = token; this.playWalk(idx, box, token, true); });
+    this.showInDrill(this.els.next);
+    this.playWalk(idx, box, token, w.idea);
+  }
+
+  async playWalk(idx, box, token, all) {
+    const items = [...box.querySelectorAll(".walk-steps li")], replay = box.querySelector(".walk-replay");
+    const stale = () => this.walkToken !== token;
+    items.forEach((li, k) => { li.hidden = k > 0; li.classList.remove("on"); });
+    if (replay) replay.hidden = true;
+    if (this.view !== idx[0]) {          // start from "before" so the engine's move itself is seen
+      this.goto(this.beforeIdx);
+      await sleep(500);
+      if (stale()) return;
+      this.goto(idx[0]);
+    }
+    items[0].classList.add("on");
+    if (!all) return;
+    for (let k = 1; k < idx.length; k++) {
+      await sleep(WALK_MS);
+      if (stale()) return;
+      this.goto(idx[k]);
+      items[k - 1].classList.remove("on");
+      items[k].hidden = false;
+      items[k].classList.add("on");
+    }
+    await sleep(WALK_MS * 0.6);
+    if (stale()) return;
+    items.at(-2)?.classList.remove("on");
+    items.at(-1).hidden = false;
+    if (replay) replay.hidden = false;
     this.showInDrill(this.els.next);
   }
 
@@ -517,7 +552,7 @@ export class Trainer {
       find: `Step 1 of ${total} · Find their reply`,
       found: "Step 1 done · Next: fix your move",
       fix: "Step 2 of 2 · Find a better move",
-      done: "Done · ← → replays the moves",
+      done: "Done · Next position when ready",
     }[this.step];
     this.els.step.textContent = text || "";
     this.els.step.dataset.step = this.step;
@@ -591,6 +626,7 @@ export class Trainer {
     this.tries = 0;
     this.firstTry = null;
     this.busy = false;
+    this.walkToken = null;
     this.badge = null;
     this.setArrows([], null);
     // The line: before my move (when known), then my move.

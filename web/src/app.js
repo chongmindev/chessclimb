@@ -174,7 +174,7 @@ async function main() {
     board: $("board"), arrows: $("arrows"), pop: $("pop"), meta: $("meta"), step: $("step"), playedLabel: $("played-label"), played: $("played"), question: $("question"),
     scan: $("scan"), feedback: $("feedback"), drill: document.querySelector(".drill"), note: $("note"), reveal: $("btn-reveal"), fixRow: $("fix-row"), showMe: $("btn-show"),
     actions: $("actions"), next: $("btn-next"), fixGo: $("btn-fix"), safe: $("btn-safe"),
-    plies: $("plies"), prev: $("btn-prev"), fwd: $("btn-fwd"), material: $("material"),
+    material: $("material"),
     side: $("device-side"), boxes: $("boxes"),
     done: $("st-done"), acc: $("st-acc"), streak: $("st-streak"),
   }, { load: async () => null, save: async () => {}, tolerance: cfg.trainer.fix_tolerance, cue: (kind) => sound.play(kind) });

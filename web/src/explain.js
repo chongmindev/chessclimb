@@ -1,13 +1,14 @@
-// Why the better move is better, in plain words, built from the board and one engine line (no AI text).
-//   1. what my move allowed: their reply, and how (left a piece undefended, took a defender away, walked into it…)
-//   2. what the better move does about it: takes the attacker, moves the piece away, defends it, checks…
-//   3. the engine's line after the better move, cut where the captures stop, and the material at that point
+// The idea behind the better move, as a short walkthrough built from the board and one engine line (no AI text):
+//   - one line on what the move does about their threat (takes the attacker, blocks, moves the piece away…)
+//   - when the engine's line has an idea in it (captures, checks, mate), a caption for each of its next few
+//     moves, played on the board one by one, and where material ends up
+//   - otherwise just the move and that one line
 
 import { Chess } from "chess.js";
 
 const NAME = { k: "king", q: "queen", r: "rook", b: "bishop", n: "knight", p: "pawn" };
 const VALUE = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
-const MAX_LINE = 8;   // plies of the engine line to show at most
+const MAX_LINE = 6;   // plies of the engine line to walk through at most
 
 /** Material on the board, White minus Black, in pawns (P1 N3 B3 R5 Q9). */
 export function material(fen) {
@@ -20,7 +21,7 @@ export function material(fen) {
 }
 
 const b = (s) => `<b>${s}</b>`;
-const fmt = (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(1);
+const side = (c) => (c === "w" ? "White" : "Black");
 
 /** "30.Rxe5" / "30…dxe5" for a verbose move played from `fen`. */
 export function numbered(fen, m) {
@@ -64,113 +65,115 @@ function amount(n) {
   return words[n] || `${n} pawns' worth`;
 }
 
+/** The enemy pieces worth mentioning that the piece on `sq` attacks: knights and up that are undefended or worth more. */
+function targets(fen, sq) {
+  const g = new Chess(fen), p = g.get(sq);
+  if (!p) return [];
+  const them = p.color === "w" ? "b" : "w", out = [];
+  for (const row of g.board()) for (const x of row) {
+    if (!x || x.color !== them || x.type === "p") continue;
+    if (!g.attackers(x.square, p.color).includes(sq)) continue;
+    if (x.type === "k" || VALUE[x.type] > VALUE[p.type] || !g.attackers(x.square, them).length) out.push(x);
+  }
+  return out.sort((a, b2) => VALUE[b2.type] - VALUE[a.type]);
+}
+
+/** One short caption for a move of the line; `prev` is the move before it. */
+function caption(p, prev, me) {
+  const m = p.move, mine = m.color === me, who = side(m.color);
+  if (m.san.endsWith("#")) return mine ? "Checkmate." : `${who} mates.`;
+  const hits = targets(p.after, m.to).filter((x) => x.type !== "k").map((x) => (mine ? "the " : "your ") + NAME[x.type]);
+  const verb = (v) => (mine ? v : v + "s");
+  const also = hits.length > 1 ? `${verb("fork")} ${hits[0]} and ${hits[1]}` : hits.length ? `${verb("attack")} ${hits[0]}` : "";
+  const alsoIng = hits.length > 1 ? `forking ${hits[0]} and ${hits[1]}` : hits.length ? `attacking ${hits[0]}` : "";
+  let text;
+  if (m.captured && prev?.move.captured && prev.move.to === m.to) text = mine ? "You take back" : `${who} takes back`;
+  else if (m.captured) text = mine ? `You take the ${NAME[m.captured]}` : `${who} takes your ${NAME[m.captured]}`;
+  else if (m.promotion) text = mine ? `You make a ${NAME[m.promotion]}` : `${who} makes a ${NAME[m.promotion]}`;
+  else if (m.san.includes("+")) text = mine ? "Check" : `${who} checks`;
+  else if (also) return `${mine ? "You" : who} ${also}.`;
+  else return mine ? "A quiet follow-up." : `${who}'s best reply.`;
+  if (m.san.includes("+") && !/^Check|checks$/.test(text)) text += " with check";
+  return `${text}${alsoIng ? `, ${alsoIng}` : ""}.`;
+}
+
 /**
  * before: FEN before my move. played, reply, better: SAN (my move, their punishment, the engine's move).
  * line: engine line after the better move {pv: [uci], cp, mate} (White's view), or null.
- * punish: engine line after my move (their best play, usually starting with `reply`), or null.
- * evb / eva: my eval in pawns before / after my move; mate: their mate-in-N after my move, if any.
- * Returns {points: [html], plies: [{move, before, after}]} — plies start with the better move.
+ * Returns {reason, idea, steps: [{ply, text}], summary} — steps[0] is the better move, captioned by `reason`.
+ * idea is false when the line is just quiet moves: then only the move and its reason are worth showing.
  */
-export function explainFix({ before, played, reply, better, line = null, punish = null, evb = null, eva = null, mate = null }) {
+export function walkthrough({ before, played, reply, better, line = null }) {
   const start = new Chess(before), me = start.turn(), opp = me === "w" ? "b" : "w";
-  const points = [];
-  const pm = new Chess(before).move(played);
-  const afterPlayed = pm.after;
+  const pm = new Chess(before).move(played), afterPlayed = pm.after;
   let rm = null;
   try { rm = new Chess(afterPlayed).move(reply); } catch {}
-  const bm = new Chess(before).move(better);
-  const afterBetter = bm.after;
-  const P = b(numbered(before, pm)), R = rm ? b(numbered(afterPlayed, rm)) : "", B = b(numbered(before, bm));
-  const sign = me === "w" ? 1 : -1, side = (c) => (c === "w" ? "White" : "Black");
-  const lineText = (plies) => plies.map((p, i) => (i === 0 || p.move.color === "w" ? numbered(p.before, p.move) : p.move.san)).join(" ");
-  const gain = (fen) => sign * (material(fen) - material(before));
-
-  // Their best play after my move, when it starts with the reply: what the punishment really wins.
-  let theirs = "";
-  if (rm && punish?.pv?.[0] === rm.from + rm.to + (rm.promotion || "")) {
-    const plies = quietCut(play(afterPlayed, punish.pv), 1);
-    const d = gain(plies.at(-1).after);
-    const worse = eva != null && mate == null && eva < d - 2;   // the eval is well below what the material says
-    if (plies.length > 1 && d < 0)
-      theirs = ` Best play goes ${b(lineText(plies))}, and you're ${amount(-d)} down${worse ? `, with a much worse position (engine: ${fmt(eva)})` : ""}.`;
-  }
-
-  // 1. What my move allowed.
+  const bm = new Chess(before).move(better), afterBetter = bm.after;
+  // Was their reply already there before my move (a threat to deal with), or did my move make it possible?
+  let threatBefore = false;
   if (rm) {
-    const S = rm.to, target = rm.captured ? NAME[rm.captured] : null;
-    const cost = theirs || (mate == null && evb != null && eva != null && evb - eva >= 1 ? ` That costs about ${Math.round(evb - eva)} pawns.` : "");
-    if (rm.san.endsWith("#")) points.push(`${P} allowed ${R}, checkmate.`);
-    else if (mate != null && mate > 0) points.push(`${P} allowed ${R}, which starts a forced mate in ${mate}.`);
-    else if (target && pm.to === S) {
-      points.push(`${P} put your ${NAME[pm.piece]} on ${S}, where ${R} takes it.${pm.captured ? ` It won a ${NAME[pm.captured]}, but loses more back.` : ""}${cost}`);
-    } else if (target) {
-      const guardedBefore = start.attackers(S, me).includes(pm.from);
-      const guardedAfter = new Chess(afterPlayed).attackers(S, me);
-      const attackedBefore = start.attackers(S, opp).includes(rm.from);
-      if (guardedBefore && !guardedAfter.includes(pm.to))
-        points.push(`Your ${NAME[pm.piece]} was guarding the ${target} on ${S}. ${P} took it away, and ${R} takes the ${target}.${cost}`);
-      else if (!attackedBefore)
-        points.push(`${P} opened the way for ${R}, which takes your ${target} on ${S}.${cost}`);
-      else if (!guardedAfter.length)
-        points.push(`Your ${target} on ${S} was already attacked and ${P} left it undefended, so ${R} takes it.${cost}`);
-      else points.push(`${P} let ${R} take your ${target} on ${S}, and you can't win enough back.${cost}`);
-    } else if (rm.san.includes("+")) points.push(`${P} allowed ${R}, a check that wins material.${cost}`);
-    else points.push(`${P} allowed ${R}.${cost}`);
+    try {
+      const f = before.split(" "); f[1] = opp; f[3] = "-";
+      threatBefore = new Chess(f.join(" ")).moves({ verbose: true }).some((m) => m.from === rm.from && m.to === rm.to);
+    } catch {}
   }
 
-  // 2. What the better move does about it.
+  // What the better move does about their threat, in one line.
   const reasons = [];
-  if (bm.san.endsWith("#")) reasons.push("It's checkmate.");
-  if (bm.captured) {
-    reasons.push(rm && bm.to === rm.from
-      ? `It takes the ${NAME[bm.captured]} on ${bm.to}, the piece that was going to play ${b(rm.san)}.`
-      : `It takes the ${NAME[bm.captured]} on ${bm.to}.`);
+  if (bm.san.endsWith("#")) reasons.push("Checkmate.");
+  if (bm.captured) reasons.push(rm && bm.to === rm.from
+    ? `Takes the ${NAME[bm.captured]} that was going to play ${b(rm.san)}.`
+    : `Takes the ${NAME[bm.captured]} on ${bm.to}.`);
+  if (!reasons.length && rm?.captured && pm.to === rm.to) {   // my move walked into the capture
+    reasons.push(bm.from === pm.from
+      ? `Your ${NAME[pm.piece]} goes to ${bm.to} instead of ${pm.to}, where ${b(rm.san)} takes it.`
+      : `Keeps your ${NAME[pm.piece]} off ${pm.to}, where ${b(rm.san)} takes it.`);
   }
-  if (rm) {
+  if (rm && !reasons.length) {
     const S = rm.to, mine = start.get(S);
     const replyLegal = new Chess(afterBetter).moves({ verbose: true }).some((m) => m.from === rm.from && m.to === S);
-    const tookAttacker = bm.captured && bm.to === rm.from;
-    if (tookAttacker) { /* said above */ }
-    else if (!replyLegal && between(rm.from, S).includes(bm.to)) reasons.push(`It blocks the ${NAME[rm.piece]}'s path to ${S}.`);
+    if (!replyLegal && between(rm.from, S).includes(bm.to)) reasons.push(`Blocks the ${NAME[rm.piece]}'s path to ${S}.`);
     else if (rm.captured && start.attackers(S, me).includes(pm.from) && !new Chess(afterPlayed).attackers(S, me).includes(pm.to)
       && new Chess(afterBetter).get(S)?.color === me && new Chess(afterBetter).attackers(S, me).includes(pm.from))
-      reasons.push(`It keeps your ${NAME[pm.piece]} on ${pm.from} guarding ${S}.`);
-    else if (rm.captured && mine?.color === me && bm.from === S) reasons.push(`It moves your ${NAME[mine.type]} off ${S}, out of reach of ${b(rm.san)}.`);
-    else if (!replyLegal) reasons.push(`${b(rm.san)} isn't possible any more.`);
-    else if (rm.captured && new Chess(afterBetter).get(S)?.color === me
+      reasons.push(`Keeps your ${NAME[pm.piece]} guarding ${S}.`);
+    else if (rm.captured && mine?.color === me && bm.from === S) reasons.push(`Gets your ${NAME[mine.type]} out of reach of ${b(rm.san)}.`);
+    else if (!replyLegal && threatBefore) reasons.push(`Stops ${b(rm.san)}.`);
+    else if (replyLegal && rm.captured && new Chess(afterBetter).get(S)?.color === me
       && new Chess(afterBetter).attackers(S, me).length > start.attackers(S, me).length)
-      reasons.push(`It defends ${S}, so ${b(rm.san)} would cost ${side(opp)} the ${NAME[rm.piece]}.`);
-    else if (rm.san.endsWith("#")) {
+      reasons.push(`Defends ${S}, so ${b(rm.san)} loses the ${NAME[rm.piece]}.`);
+    else if (replyLegal && rm.san.endsWith("#")) {
       const g = new Chess(afterBetter);
       g.move({ from: rm.from, to: S, promotion: rm.promotion });
-      if (!g.isCheckmate()) reasons.push(`After it, ${b(rm.san.slice(0, -1))} isn't mate any more.`);
+      if (!g.isCheckmate()) reasons.push(`Covers the king, so ${b(rm.san.slice(0, -1))} isn't mate.`);
     }
   }
-  if (bm.san.includes("+") && !bm.san.endsWith("#")) reasons.push(`It comes with check, so ${opp === "w" ? "White" : "Black"} has to deal with that first.`);
-  const myMate = line?.mate != null ? (me === "w" ? line.mate : -line.mate) : null;
-  if (myMate != null && myMate > 0) reasons.push(`It leads to mate in ${myMate + 1}.`);   // +1: the better move itself
-  const best = play(afterBetter, line?.pv || [])[0];
-  if (!reasons.length && best && rm) {
-    const still = best.move.from === rm.from && best.move.to === rm.to;
-    reasons.push(still
-      ? `${b(rm.san)} is still there, but now it doesn't win anything.`
-      : `It takes the sting out of ${b(rm.san)}: ${side(opp)}'s best answer is ${b(numbered(afterBetter, best.move))} instead.`);
+  if (!reasons.length && rm) {   // their reply would also have hit the piece that the better move takes away
+    const g = new Chess(afterPlayed);
+    g.move({ from: rm.from, to: rm.to, promotion: rm.promotion });
+    const moved = start.get(bm.from);
+    if (moved && targets(g.fen(), rm.to).some((x) => x.square === bm.from && x.color === me))
+      reasons.push(`Gets your ${NAME[moved.type]} away first, so ${b(rm.san)} doesn't hit it.`);
   }
-  if (!reasons.length) reasons.push("Every other move loses more; this one keeps your position together.");
-  points.push(`${B}: ${reasons.join(" ")}`);
+  if (!reasons.length && bm.san.includes("+")) reasons.push(`Check first, so ${side(opp)} has no time for ${rm ? b(rm.san) : "their threat"}.`);
+  if (!reasons.length) {
+    const hits = targets(afterBetter, bm.to).filter((x) => x.type !== "k");
+    if (hits.length) reasons.push(`Attacks the ${NAME[hits[0].type]}, so ${side(opp)} has no time for ${rm ? b(rm.san) : "their threat"}.`);
+  }
+  if (!reasons.length && rm && !threatBefore) reasons.push(`Without ${b(pm.san)}, ${b(rm.san)} never happens.`);
+  if (!reasons.length) reasons.push(rm ? `Takes the sting out of ${b(rm.san)}.` : "Keeps everything protected.");
+  const reason = reasons[0];
 
-  // 3. The engine's line after the better move, and where material ends up.
+  // The engine's line, cut where it goes quiet, with a caption per move.
   const plies = [{ move: bm, before, after: afterBetter }, ...play(afterBetter, line?.pv || [])];
-  const shown = quietCut(plies, 3);   // at least: the better move, their answer, my follow-up
-  if (shown.length > 1) {
-    const text = lineText(shown);
-    const d = gain(shown.at(-1).after);
-    const ev = line && line.mate == null ? sign * line.cp / 100 : null;
-    const outcome = d > 0 ? (ev != null && ev < d - 1 ? "you come out ahead" : `you come out ${amount(d)} up`)
-      : d < 0 ? `you're ${amount(-d)} down in material but better placed` : "material stays level";
-    const instead = mate != null && mate > 0 ? " instead of getting mated" : eva != null && Math.abs(eva) < 20 ? ` instead of ${fmt(eva)}` : "";
-    const score = line && line.mate == null ? ` Engine: ${fmt(sign * line.cp / 100)}${instead}.` : "";
-    points.push(`Best line: ${b(text)}. After that, ${outcome}.${score}`);
-  }
-  return { points, plies: shown };
+  const shown = quietCut(plies, 3);
+  const steps = shown.map((p, i) => ({ ply: p, text: i === 0 ? reason : caption(p, shown[i - 1], me) }));
+  const sign = me === "w" ? 1 : -1;
+  const d = sign * (material(shown.at(-1).after) - material(before));
+  const myMate = line?.mate != null && sign * line.mate > 0 ? sign * line.mate + 1 : null;
+  const idea = !!myMate || (shown.length >= 3 && (d !== 0 || shown.slice(1).some((p) => p.move.captured || p.move.san.includes("+"))));
+  const summary = myMate ? `Mate in ${myMate}.`
+    : d > 0 ? `You come out ${amount(d)} up.`
+    : d < 0 ? `You give back ${amount(-d)}, but the threat is gone.`
+    : "Material stays level, and the threat is gone.";
+  return { reason, idea, steps: idea ? steps : steps.slice(0, 1), summary };
 }
