@@ -10,6 +10,7 @@ cpSync(new URL("./favicon.svg", import.meta.url), new URL("favicon.svg", out));
 cpSync(new URL("./src/", import.meta.url), new URL("src/", out), { recursive: true });
 cpSync(new URL("./styles/", import.meta.url), new URL("styles/", out), { recursive: true });
 cpSync(new URL("./node_modules/chess.js/dist/esm/chess.js", import.meta.url), new URL("vendor/chess.js", out));
+cpSync(new URL("./node_modules/chess.js/LICENSE", import.meta.url), new URL("vendor/chess.js.LICENSE.txt", out));
 for (const f of ["stockfish-19-lite-single.js", "stockfish-19-lite-single.wasm"])
   cpSync(new URL(`./node_modules/stockfish/bin/${f}`, import.meta.url), new URL(`engine/${f}`, out));
 cpSync(new URL("./node_modules/stockfish/Copying.txt", import.meta.url), new URL("engine/COPYING.txt", out));
@@ -25,6 +26,9 @@ for (const m of css.matchAll(/piece\.(\w+)\.(white|black)\s*\{\s*background-imag
   pieces++;
 }
 if (pieces !== 12) throw new Error(`expected 12 piece images, found ${pieces}`);
+writeFileSync(new URL("pieces/LICENSE.txt", out),
+  "Chess pieces by Colin M.L. Burnett (cburnett), licensed GPLv2+ (also BSD and GFDL),\n" +
+  "as distributed with chessground (https://github.com/lichess-org/chessground).\n");
 writeFileSync(new URL("_headers", out), [
   "/*",
   "  X-Content-Type-Options: nosniff",

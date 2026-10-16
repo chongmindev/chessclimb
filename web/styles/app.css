@@ -302,6 +302,20 @@ body[data-view="drill"] .form:not(.open) .form-summary { display: flex; }
   .form-row.tc { grid-template-columns: minmax(0, 1fr); }
 }
 
+@media (max-width: 640px) {
+  .how li { padding-right: 10px; }
+  .how li + li { padding-left: 10px; }
+  .how .label { white-space: normal; }
+  .how h2 { font-size: 1.25rem; }
+  .counters { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 12px 16px; row-gap: 10px; }
+  .counter + .counter { padding-left: 12px; }
+  .counter.vu { grid-column: 1 / -1; border-left: 0; padding-left: 0; padding-top: 10px;
+    border-top: 1px solid color-mix(in srgb, var(--paper) 35%, transparent); }
+  .scan { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .scan > .label { grid-column: 1 / -1; }
+  .scan .chip { justify-content: center; padding: 0 8px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

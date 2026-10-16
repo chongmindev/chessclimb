@@ -1,6 +1,7 @@
 {
   "name": "cracktics-web",
   "private": true,
+  "license": "GPL-3.0-or-later",
   "type": "module",
   "dependencies": {
     "chess.js": "1.4.0",

@@ -90,3 +90,9 @@ Tests cover the selection rules on fake engine output, known blunders on the rea
 Stockfish is missing), the Chess.com fetcher with a fake HTTP layer, and the MCP tools end to end.
 
 Project notes and the roadmap are in [`HANDOFF.md`](HANDOFF.md).
+
+## Licence
+
+GPL-3.0-or-later (see [`LICENSE`](LICENSE)). The Python side uses python-chess and the web app ships
+Stockfish.js, both GPLv3. The web app also ships chess.js (BSD-2-Clause) and the cburnett pieces
+(GPLv2+); their notices are copied into the built site.
