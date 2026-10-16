@@ -12,8 +12,9 @@ right after one of your moves:
 The trainer shows each position from your side of the board, takes your answer as a move on the board,
 and schedules positions with spaced repetition (Leitner boxes).
 
-> Status: working pipeline, MCP server and single-file trainer. A version that runs entirely in the
-> browser, so anyone can use it with just a username, is being designed.
+> The web app runs entirely in the browser, for anyone with a Chess.com or Lichess username:
+> **https://chongmindev.github.io/cracktics/** (source in [`web/`](web/)). The Python pipeline, MCP server
+> and single-file trainer below read Chess.com only.
 
 ## Requirements
 
@@ -72,7 +73,8 @@ settings (request pacing, time classes).
 ## Fair play
 
 Only **finished** games are ever analysed. The fetcher reads Chess.com's monthly archives, which contain
-finished games only, and never calls the current-games endpoints. Chess.com bans engine assistance during
+finished games only, and never calls the current-games endpoints. On Lichess the web app uses the games
+export with `ongoing=false`, which returns finished games only. Both sites ban engine assistance during
 games; this tool is for reviewing them afterwards.
 
 ## Privacy

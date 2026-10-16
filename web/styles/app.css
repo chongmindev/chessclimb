@@ -133,6 +133,17 @@ svg.arrows { position: absolute; inset: 0; width: 100%; height: 100%; pointer-ev
 [role="option"].active { background: var(--tint); }
 [role="option"][aria-selected="true"] { font-weight: 700; }
 [role="option"][aria-selected="true"]::after { content: ""; width: 10px; height: 10px; background: var(--accent); flex: none; }
+/* Where you play: two joined buttons, one pressed (joined reads as pick-one) */
+.site { display: grid; grid-template-columns: 1fr 1fr; margin: 0; padding: 0; border: 0; }
+.site label { cursor: pointer; }
+.site input { position: absolute; opacity: 0; pointer-events: none; }
+.site span { display: flex; align-items: center; justify-content: center; min-height: 40px; border: var(--medium);
+  font: 500 0.8125rem var(--f-mono); letter-spacing: var(--track-label); text-transform: uppercase; transition: background var(--t), color var(--t); }
+.site label + label span { border-left: 0; }
+.site label:hover span { background: var(--tint); }
+.site input:checked + span { background: var(--ink); color: var(--paper); }
+.site input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
+.resume { margin: -6px 0 0; text-align: center; }
 .form-row.tc { grid-template-columns: minmax(0, 1fr); gap: 14px; }
 .form-row.tc .btn.primary { width: 100%; }
 .toggles { flex-wrap: nowrap; }

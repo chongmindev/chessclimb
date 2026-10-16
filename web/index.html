@@ -87,8 +87,13 @@
           <button class="btn ghost" type="button" id="btn-change">Change</button>
         </div>
         <div class="form-body">
+          <fieldset class="site">
+            <legend class="visually-hidden">Where you play</legend>
+            <label><input type="radio" name="site" value="chesscom" checked><span>Chess.com</span></label>
+            <label><input type="radio" name="site" value="lichess"><span>Lichess</span></label>
+          </fieldset>
           <div class="form-row">
-            <label class="field"><span class="label">Chess.com username</span>
+            <label class="field"><span class="label" id="username-label">Chess.com username</span>
               <input class="input" type="text" id="username" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="your username" required>
             </label>
             <label class="field"><span class="label">Games</span>
@@ -119,7 +124,8 @@
               <label class="toggle"><input type="checkbox" name="tc" value="bullet"><span><i class="tick" aria-hidden="true"></i>Bullet</span></label>
               <label class="toggle"><input type="checkbox" name="tc" value="daily"><span><i class="tick" aria-hidden="true"></i>Daily</span></label>
             </fieldset>
-            <button class="btn primary" type="submit">Scan games<svg class="icon"><use href="#i-next"/></svg></button>
+            <button class="btn primary" type="submit" id="btn-scan"><span id="scan-label">Scan games</span><svg class="icon"><use href="#i-next"/></svg></button>
+            <p class="resume label" id="resume" hidden></p>
           </div>
         </div>
         <p class="error" id="error" role="alert" hidden></p>

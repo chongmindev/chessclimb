@@ -1,6 +1,7 @@
-// Wires the page: username -> Chess.com games -> scan (cache, Lichess cloud, engine pool) -> trainer.
+// Wires the page: username -> Chess.com or Lichess games -> scan (cache, Lichess cloud, engine pool) -> trainer.
 
 import { ChessCom } from "./chesscom.js";
+import { Lichess } from "./lichess.js";
 import { EnginePool, Evaluator } from "./evals.js";
 import { Scan } from "./scan.js";
 import { Select } from "./select.js";
@@ -13,6 +14,11 @@ import { UciEngine } from "./uci.js";
 const cfg = await (await fetch(new URL("./config.json", import.meta.url))).json();
 const ENGINE_URL = "engine/stockfish-19-lite-single.js";
 const $ = (id) => document.getElementById(id);
+const SITE_NAME = { chesscom: "Chess.com", lichess: "Lichess" };
+
+/** Progress and scan results are kept per player and site (Chess.com keeps its original, unprefixed keys). */
+const playerKey = (site, username) => (site === "lichess" ? "lichess:" : "") + username.toLowerCase();
+const siteNow = () => document.querySelector("input[name=site]:checked")?.value || "chesscom";
 
 /** The nameplate LED and the status readout LED follow the scan: idle, fetching, scanning, ready, error. */
 const LED_LABEL = { idle: "Standby", fetching: "Fetching games", scanning: "Scanning", ready: "Ready", error: "Fault" };
@@ -100,17 +106,20 @@ export function parseRange(value) {
   return value[0] === "g" ? { games: n } : { days: n };
 }
 
-async function start(store, trainer, username, rangeValue, timeClasses) {
+async function start(store, trainer, site, username, rangeValue, timeClasses) {
   const range = parseRange(rangeValue);
   const rangeLabel = $("range").selectedOptions[0]?.textContent.toLowerCase() || rangeValue;
   scan?.stop();
   $("status").hidden = false;
   setState("fetching");
-  $("status-text").textContent = "Fetching your finished games from Chess.com…";
+  $("status-text").textContent = `Fetching your finished games from ${SITE_NAME[site]}…`;
   $("error").hidden = true;
   let games;
   try {
-    games = await new ChessCom({ store, minInterval: cfg.fetch.min_interval }).games(username, { range, timeClasses });
+    games = site === "lichess"
+      ? await new Lichess({ store }).games(username, { range, timeClasses,
+          onProgress: (n) => { $("status-text").textContent = `Fetching your finished games from Lichess… ${n}`; } })
+      : await new ChessCom({ store, minInterval: cfg.fetch.min_interval }).games(username, { range, timeClasses });
   } catch (e) {
     $("error").textContent = e.message;
     $("error").hidden = false;
@@ -123,8 +132,8 @@ async function start(store, trainer, username, rangeValue, timeClasses) {
     setState("idle");
     return;
   }
-  await store.set("last", { username, range: rangeValue, timeClasses });
-  $("who").textContent = `${username} · ${timeClasses.join(", ") || "all"} · ${rangeLabel} · ${games.length} games`;
+  await store.set("last", { site, username, range: rangeValue, timeClasses });
+  $("who").textContent = `${username}${site === "lichess" ? " (Lichess)" : ""} · ${timeClasses.join(", ") || "all"} · ${rangeLabel} · ${games.length} games`;
   $("start").classList.remove("open");
   document.body.dataset.view = "waiting";
 
@@ -139,13 +148,13 @@ async function start(store, trainer, username, rangeValue, timeClasses) {
   trainer.evaluate = async (fen) => (await evaluator.forGame()(fen, cfg.drills.depth, 1))[0];
   // Explanations want the engine's whole line, which the cache doesn't keep: a fresh search, one position.
   trainer.analyse = (fen) => pool.analyse(fen, cfg.drills.depth, 1, true);
-  const key = `progress|${username.toLowerCase()}`;
+  const key = `progress|${playerKey(site, username)}`;
   trainer.load = () => store.get(key);
   trainer.save = (p) => store.set(key, p);
   await trainer.start();
 
   const t0 = Date.now();
-  scan = new Scan({ username, games, evaluator, store, cfg, concurrency: pool.size, onUpdate: (u) => {
+  scan = new Scan({ username: playerKey(site, username), games, evaluator, store, cfg, concurrency: pool.size, onUpdate: (u) => {
     const threats = u.deck.filter((i) => i.kind === "threat").length;
     setState(u.running ? "scanning" : "ready");
     // Quick pass fills the first 60% of the meter, the deep pass the rest.
@@ -179,29 +188,52 @@ async function main() {
     done: $("st-done"), acc: $("st-acc"), streak: $("st-streak"),
   }, { load: async () => null, save: async () => {}, tolerance: cfg.trainer.fix_tolerance, cue: (kind) => sound.play(kind) });
 
+  // Site switch: the username label follows it; the button says Continue when this player has progress here.
+  const paintCta = async () => {
+    const u = $("username").value.trim();
+    const p = u ? await store.get(`progress|${playerKey(siteNow(), u)}`) : null;
+    const done = p?.stats?.done || 0;
+    $("scan-label").textContent = done ? "Continue" : "Scan games";
+    $("resume").hidden = !done;
+    if (done) $("resume").textContent = `${done} answered · ${Math.round((100 * p.stats.ok) / done)}% correct · picks up where you left off`;
+  };
+  const paintSite = () => {
+    const site = siteNow();
+    $("username-label").textContent = `${SITE_NAME[site]} username`;
+    // Lichess has no "daily"; its correspondence games play that part, and classical counts with rapid.
+    document.querySelector('input[name=tc][value=daily] + span').lastChild.textContent = site === "lichess" ? "Corresp." : "Daily";
+    document.querySelector('input[name=tc][value=rapid]').closest("label").title = site === "lichess" ? "Rapid and classical" : "";
+    paintCta();
+  };
+  for (const r of document.querySelectorAll("input[name=site]")) r.addEventListener("change", paintSite);
+  $("username").addEventListener("input", paintCta);
+
   const last = await store.get("last");
   if (last) {
+    const site = document.querySelector(`input[name=site][value="${last.site || "chesscom"}"]`);
+    if (site) site.checked = true;
     $("username").value = last.username;
     // Older saves stored months; map them to the nearest time span.
     const saved = last.range || { 1: "d30", 2: "d90", 3: "d90", 6: "d182" }[last.months] || "g50";
     if ([...$("range").options].some((o) => o.value === saved)) { $("range").value = saved; range.sync(); }
     for (const box of document.querySelectorAll("input[name=tc]")) box.checked = last.timeClasses.includes(box.value);
   }
+  paintSite();
   $("btn-change").addEventListener("click", () => { $("start").classList.add("open"); $("username").focus(); });
   $("start").addEventListener("submit", (e) => {
     e.preventDefault();
     const username = $("username").value.trim();
     if (!username) return;
     const timeClasses = [...document.querySelectorAll("input[name=tc]:checked")].map((b) => b.value);
-    start(store, trainer, username, $("range").value, timeClasses);
+    start(store, trainer, siteNow(), username, $("range").value, timeClasses);
   });
 
   $("btn-export").addEventListener("click", async () => {
-    const username = $("username").value.trim().toLowerCase();
-    const data = { username, progress: await store.get(`progress|${username}`) };
+    const username = $("username").value.trim().toLowerCase(), site = siteNow();
+    const data = { username, site, progress: await store.get(`progress|${playerKey(site, username)}`) };
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
-    a.download = `cracktics-progress-${username}.json`;
+    a.download = `cracktics-progress-${site === "lichess" ? "lichess-" : ""}${username}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
   });
@@ -210,9 +242,12 @@ async function main() {
     if (!file) return;
     try {
       const data = JSON.parse(await file.text());
-      await store.set(`progress|${data.username}`, data.progress);
+      const site = data.site === "lichess" ? "lichess" : "chesscom";
+      await store.set(`progress|${playerKey(site, data.username)}`, data.progress);
+      document.querySelector(`input[name=site][value="${site}"]`).checked = true;
       $("username").value = data.username;
-      $("import-note").textContent = `Progress for ${data.username} imported. Press Scan to continue.`;
+      paintSite();
+      $("import-note").textContent = `Progress for ${data.username} imported. Press Continue.`;
     } catch {
       $("import-note").textContent = "That file isn't a progress export.";
     }
