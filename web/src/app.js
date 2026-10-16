@@ -137,6 +137,8 @@ async function start(store, trainer, username, rangeValue, timeClasses) {
   const evaluator = new Evaluator({ store, pool, cloud: null });
   // The fix step asks the same engines (and cache) whether a move holds.
   trainer.evaluate = async (fen) => (await evaluator.forGame()(fen, cfg.drills.depth, 1))[0];
+  // Explanations want the engine's whole line, which the cache doesn't keep: a fresh search, one position.
+  trainer.analyse = (fen) => pool.analyse(fen, cfg.drills.depth, 1, true);
   const key = `progress|${username.toLowerCase()}`;
   trainer.load = () => store.get(key);
   trainer.save = (p) => store.set(key, p);

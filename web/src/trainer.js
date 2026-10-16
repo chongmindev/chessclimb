@@ -9,12 +9,14 @@
 // (a branch from "before"). ← / → or the line row step through them; moves slide, captures fade.
 
 import { Chess } from "chess.js";
+import { explainFix, material, numbered } from "./explain.js";
+
+export { material };
 
 const NAME = { k: "king", q: "queen", r: "rook", b: "bishop", n: "knight", p: "pawn" };
 const FILES = "abcdefgh";
 const RESULT = { win: "Won", loss: "Lost", draw: "Drawn" };
 const EVAL_SPAN = 6;   // the eval bar runs from -6 to +6 pawns; beyond that (or mate) pins to the end
-const VALUE = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
 const SLIDE_MS = 260;     // one move's slide
 const INTRO_MS = 450;     // a new position shows "before" this long, then my move plays
 const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -43,16 +45,6 @@ export function scanSets(fen) {
   };
 }
 
-/** Material on the board, White minus Black, in pawns (P1 N3 B3 R5 Q9). */
-export function material(fen) {
-  let v = 0;
-  for (const ch of fen.split(" ")[0]) {
-    const t = ch.toLowerCase();
-    if (t in VALUE) v += (ch === t ? -1 : 1) * VALUE[t];
-  }
-  return v;
-}
-
 /** Position of a pawn value on the eval bar, in percent from the left (my side winning = right). */
 export function evalX(pawns, mate = false) {
   const v = mate ? Math.sign(pawns) * EVAL_SPAN : Math.max(-EVAL_SPAN, Math.min(EVAL_SPAN, pawns));
@@ -65,9 +57,10 @@ export class Trainer {
    *       plies, prev, fwd, material, feedback, next, fixGo, side, boxes, done, acc, streak}
    * evaluate(fen) -> Promise<{cp, mate}> from White's view; used by the fix step. tolerance in centipawns.
    * cue(kind): "right" / "wrong", for a sound.
+   * analyse(fen) -> Promise<[{cp, mate, pv}]> from White's view, with the whole line; used to explain the fix.
    */
-  constructor(els, { load, save, evaluate = null, tolerance = 100, cue = () => {} }) {
-    Object.assign(this, { els, load, save, evaluate, tolerance, cue });
+  constructor(els, { load, save, evaluate = null, analyse = null, tolerance = 100, cue = () => {} }) {
+    Object.assign(this, { els, load, save, evaluate, analyse, tolerance, cue });
     this.items = [];
     this.progress = { boxes: {}, seen: {}, turn: 0, stats: { done: 0, ok: 0, streak: 0 } };
     this.cur = null;
@@ -459,6 +452,38 @@ export class Trainer {
     const note = evalAfter == null ? "" : `<div class="evalbar-note label">After ${esc(san)} ${fmt(evalAfter)} · best ${fmt(cur.evb)}</div>`;
     this.feedback(!shown && this.firstTry === true, shown ? "Here's the fix" : this.firstTry ? "Found and fixed" : "Fixed", cards, note);
     this.finish();
+    this.explainWhy(cur);
+  }
+
+  /** "Why 30.Rxe5": what my move allowed, what the better move does, and the engine's line (added to the line row). */
+  async explainWhy(cur) {
+    const fb = this.els.feedback.querySelector(".fb");
+    if (!fb || !cur.better || !cur.before_fen) return;
+    const head = `<p class="label">Why ${esc(num(cur.move, this.meW(), cur.better))}</p>`;
+    const why = document.createElement("div");
+    why.className = "why";
+    why.innerHTML = head + `<p class="why-wait">Working it out…</p>`;
+    fb.appendChild(why);
+    let line = null, punish = null;
+    try {
+      const bm = new Chess(cur.before_fen).move(cur.better), pm = new Chess(cur.before_fen).move(cur.san);
+      if (this.analyse) [[line], [punish]] = await Promise.all([this.analyse(bm.after), this.analyse(pm.after)]);
+    } catch {}
+    if (this.cur !== cur) return;
+    let ex;
+    try {
+      ex = explainFix({ before: cur.before_fen, played: cur.san, reply: cur.reply, better: cur.better, line, punish,
+        evb: cur.evb, eva: cur.eva, mate: cur.mate });
+    } catch { why.remove(); return; }
+    // The engine's move and its line become frames, so → plays them on the board.
+    let at = this.frames.findIndex((f) => f.parent === this.beforeIdx && f.move?.san === cur.better);
+    const [first, ...rest] = ex.plies;
+    if (at < 0) at = this.addFrame(first.after, first.move, this.beforeIdx, "fix", numbered(first.before, first.move));
+    for (const p of rest) at = this.addFrame(p.after, p.move, at, "pv", numbered(p.before, p.move));
+    why.innerHTML = head + `<ul>${ex.points.map((p) => `<li>${p}</li>`).join("")}</ul>` +
+      (rest.length ? `<p class="why-hint label">→ plays the best line on the board</p>` : "");
+    this.paintLine();
+    this.showInDrill(this.els.next);
   }
 
   // ---------- shared ----------

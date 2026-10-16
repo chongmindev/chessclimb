@@ -77,11 +77,11 @@ export class EnginePool {
     this.searches = 0;
   }
 
-  async analyse(fen, depth, multipv) {
+  async analyse(fen, depth, multipv, withPv = false) {
     const eng = this.idle.pop() || (await new Promise((r) => this.waiting.push(r)));
     try {
       this.searches++;
-      return await eng.analyse(fen, depth, multipv);
+      return await eng.analyse(fen, depth, multipv, withPv);
     } finally {
       const next = this.waiting.shift();
       if (next) next(eng); else this.idle.push(eng);

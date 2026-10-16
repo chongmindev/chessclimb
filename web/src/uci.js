@@ -9,11 +9,11 @@ export function foldMate(mate, mateScore) {
   return mate > 0 ? mateScore - mate : -mateScore - mate;
 }
 
-/** Parse one `info` line. Returns {depth, multipv, cp, mate, move, bound} from the side to move's view, or null. */
+/** Parse one `info` line. Returns {depth, multipv, cp, mate, move, pv, bound} from the side to move's view, or null. */
 export function parseInfo(line) {
   if (!line.startsWith("info ") || !line.includes(" score ")) return null;
   const t = line.split(" ");
-  const out = { depth: 0, multipv: 1, cp: null, mate: null, move: null, bound: false };
+  const out = { depth: 0, multipv: 1, cp: null, mate: null, move: null, pv: [], bound: false };
   for (let i = 1; i < t.length; i++) {
     switch (t[i]) {
       case "depth": out.depth = +t[++i]; break;
@@ -23,7 +23,7 @@ export function parseInfo(line) {
         i += 2;
         if (t[i + 1] === "lowerbound" || t[i + 1] === "upperbound") { out.bound = true; i++; }
         break;
-      case "pv": out.move = t[i + 1] || null; i = t.length; break;
+      case "pv": out.pv = t.slice(i + 1).filter(Boolean); out.move = out.pv[0] || null; i = t.length; break;
     }
   }
   return out;
@@ -55,14 +55,15 @@ export class UciEngine {
     return this;
   }
 
-  /** Best lines for the side to move in `fen`, best first. One search at a time per engine. */
-  analyse(fen, depth, multipv = 1) {
-    const run = this.queue.then(() => this._analyse(fen, depth, multipv));
+  /** Best lines for the side to move in `fen`, best first. One search at a time per engine.
+   *  withPv adds each line's whole principal variation (UCI moves) as `pv`. */
+  analyse(fen, depth, multipv = 1, withPv = false) {
+    const run = this.queue.then(() => this._analyse(fen, depth, multipv, withPv));
     this.queue = run.catch(() => {});
     return run;
   }
 
-  async _analyse(fen, depth, multipv) {
+  async _analyse(fen, depth, multipv, withPv) {
     const chess = new Chess(fen);
     if (isGameOver(chess, null)) {
       if (!chess.isCheckmate()) return [{ move: null, cp: 0, mate: null }];
@@ -83,7 +84,7 @@ export class UciEngine {
     const lines = [...best.entries()].sort((a, b) => a[0] - b[0]).map(([, i]) => {
       const mate = i.mate === null ? null : sign * i.mate;
       const cp = i.mate === null ? sign * i.cp : sign * foldMate(i.mate, this.mateScore);
-      return { move: i.move, cp, mate };
+      return withPv ? { move: i.move, cp, mate, pv: i.pv } : { move: i.move, cp, mate };
     });
     return lines.length ? lines : [{ move: null, cp: 0, mate: null }];
   }

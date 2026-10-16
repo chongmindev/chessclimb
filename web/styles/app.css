@@ -346,6 +346,15 @@ body[data-view="drill"] .form:not(.open) .form-summary { display: flex; }
 .step-btn:focus-visible, .ply:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 .card .sub { font: 500 0.6875rem/1.3 var(--f-mono); letter-spacing: var(--track-label); text-transform: uppercase; opacity: 0.85; }
 
+/* Why the better move works: a short list under the cards */
+.why { display: grid; gap: 6px; padding-top: 10px; border-top: 1px solid color-mix(in srgb, currentColor 30%, transparent); }
+.fb.ok .why .label { color: color-mix(in srgb, var(--paper) 70%, transparent); }
+.why ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 0.9375rem; line-height: 1.4; }
+.why b { font: 600 0.9em var(--f-mono); white-space: nowrap; }
+.why-wait { margin: 0; font-style: italic; opacity: 0.75; }
+.why-hint { margin: 0; }
+.ply.pv { border-style: dotted; }
+
 /* Verdicts: a badge on the square you moved to, and a check that pops over the board when you get it */
 .sq .verdict { position: absolute; top: 3%; right: 3%; width: 36%; height: 36%; display: grid; place-items: center; z-index: 2;
   pointer-events: none; border: 2px solid #ffffff; }

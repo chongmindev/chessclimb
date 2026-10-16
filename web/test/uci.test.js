@@ -7,9 +7,9 @@ import { foldMate, parseInfo, UciEngine } from "../src/uci.js";
 
 test("parseInfo reads score, depth, multipv and first move", () => {
   assert.deepEqual(parseInfo("info depth 13 seldepth 18 multipv 2 score cp -34 nodes 1 nps 2 pv e7e5 g1f3"),
-    { depth: 13, multipv: 2, cp: -34, mate: null, move: "e7e5", bound: false });
+    { depth: 13, multipv: 2, cp: -34, mate: null, move: "e7e5", pv: ["e7e5", "g1f3"], bound: false });
   assert.deepEqual(parseInfo("info depth 9 score mate -2 upperbound pv a1a2"),
-    { depth: 9, multipv: 1, cp: null, mate: -2, move: "a1a2", bound: true });
+    { depth: 9, multipv: 1, cp: null, mate: -2, move: "a1a2", pv: ["a1a2"], bound: true });
   assert.equal(parseInfo("info string NNUE evaluation enabled"), null);
 });
 
