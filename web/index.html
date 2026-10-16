@@ -28,6 +28,12 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-next" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5ZM15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5ZM22 9l-6 6M16 9l6 6"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
 </svg>
 
@@ -39,6 +45,10 @@
         <button class="btn ghost" id="btn-export" type="button">Export</button>
         <label class="btn ghost" for="file-import">Import<input class="visually-hidden" type="file" id="file-import" accept="application/json"></label>
       </nav>
+      <button class="theme-btn" id="btn-sound" type="button" aria-pressed="true" aria-label="Sound on" title="Sound on">
+        <svg class="icon on" aria-hidden="true"><use href="#i-sound"/></svg>
+        <svg class="icon off" aria-hidden="true"><use href="#i-mute"/></svg>
+      </button>
       <button class="theme-btn" id="btn-theme" type="button" aria-pressed="false" aria-label="Switch to night mode" title="Switch to night mode">
         <svg class="icon moon" aria-hidden="true"><use href="#i-moon"/></svg>
         <svg class="icon sun" aria-hidden="true"><use href="#i-sun"/></svg>
@@ -65,6 +75,7 @@
       <div class="boardbox">
         <div class="board" id="board" role="grid" aria-label="Chess board"></div>
         <svg class="arrows" id="arrows" viewBox="0 0 8 8" aria-hidden="true"></svg>
+        <div class="pop" id="pop" aria-hidden="true"><svg class="icon"><use href="#i-check"/></svg></div>
       </div>
     </div>
 
@@ -138,11 +149,19 @@
 
       <section class="drill" aria-label="Position">
         <div class="meta" id="meta"></div>
+        <div class="step-row"><p class="step label" id="step"></p><span class="material label" id="material" title="Material on the board for you (P1 N3 B3 R5 Q9)"></span></div>
         <div class="played">
           <span class="label" id="played-label">You played</span>
           <span class="played-move" id="played"></span>
         </div>
         <p class="question" id="question"></p>
+
+        <div class="line" role="group" aria-label="Moves (← and → step through them)">
+          <span class="label">Line</span>
+          <button class="step-btn" id="btn-prev" type="button" aria-label="Previous position" title="Previous position (←)"><svg class="icon"><use href="#i-left"/></svg></button>
+          <ol class="plies" id="plies"></ol>
+          <button class="step-btn" id="btn-fwd" type="button" aria-label="Next position" title="Next position (→)"><svg class="icon"><use href="#i-right"/></svg></button>
+        </div>
 
         <div class="scan" id="scan" role="group" aria-label="Scan the board">
           <span class="label">Scan</span>
@@ -168,7 +187,7 @@
         <p class="note" id="note" role="status" hidden></p>
 
         <div id="feedback"></div>
-        <div class="btns"><button class="btn primary" id="btn-next" type="button" hidden>Next<svg class="icon"><use href="#i-next"/></svg></button></div>
+        <div class="btns"><button class="btn primary" id="btn-fix" type="button" hidden>Fix your move<svg class="icon"><use href="#i-next"/></svg></button><button class="btn primary" id="btn-next" type="button" hidden>Next<svg class="icon"><use href="#i-next"/></svg></button></div>
         <span class="visually-hidden" id="device-side"></span>
       </section>
 

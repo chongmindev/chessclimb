@@ -155,6 +155,11 @@ Two global layers at very low opacity so white reads as paper: horizontal print 
 Instant. Button and toggle inversions take 100ms at most; the status mark blinks with `steps(1)`;
 nothing eases, floats or bounces. `prefers-reduced-motion: reduce` turns all of it off.
 
+Two exceptions, because they carry information on the board: a move slides (260ms) and a captured piece
+fades, so the player sees what moved and what it took; and a right answer pops a check over the board
+(1s, then gone). Right answers also get a rising two-note tone and wrong ones a low thud (Web Audio, mutable
+in the bar). Verdict colors: right = accent with a check, wrong = black with a cross (`--ok-*`, `--no-*`).
+
 ## Accessibility
 
 - Black on white is 21:1; secondary gray is 7.8:1; white on the band is 21:1, its labels about 15:1.

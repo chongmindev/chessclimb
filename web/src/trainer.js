@@ -1,8 +1,12 @@
 // The drill, in up to two steps:
 //   find: the position right after my move. Play the opponent's punishing reply, or say nothing works.
 //         A wrong try says so and the board stays live; "Reveal" gives up. Only the first try is graded.
+//         Their reply is then played on the board, and the player moves on when ready ("Fix your move").
 //   fix:  for a real blunder, the board rewinds to before my move: play what I should have played.
 //         The engine judges it (within trainer.fix_tolerance of the best eval counts); "Show me" gives up.
+//
+// The positions seen so far form a line (frames): before my move, after it, after their reply, and my fix
+// (a branch from "before"). ← / → or the line row step through them; moves slide, captures fade.
 
 import { Chess } from "chess.js";
 
@@ -10,6 +14,10 @@ const NAME = { k: "king", q: "queen", r: "rook", b: "bishop", n: "knight", p: "p
 const FILES = "abcdefgh";
 const RESULT = { win: "Won", loss: "Lost", draw: "Drawn" };
 const EVAL_SPAN = 6;   // the eval bar runs from -6 to +6 pawns; beyond that (or mate) pins to the end
+const VALUE = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+const SLIDE_MS = 260;     // one move's slide
+const INTRO_MS = 450;     // a new position shows "before" this long, then my move plays
+const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const fmt = (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(1);
@@ -35,6 +43,16 @@ export function scanSets(fen) {
   };
 }
 
+/** Material on the board, White minus Black, in pawns (P1 N3 B3 R5 Q9). */
+export function material(fen) {
+  let v = 0;
+  for (const ch of fen.split(" ")[0]) {
+    const t = ch.toLowerCase();
+    if (t in VALUE) v += (ch === t ? -1 : 1) * VALUE[t];
+  }
+  return v;
+}
+
 /** Position of a pawn value on the eval bar, in percent from the left (my side winning = right). */
 export function evalX(pawns, mate = false) {
   const v = mate ? Math.sign(pawns) * EVAL_SPAN : Math.max(-EVAL_SPAN, Math.min(EVAL_SPAN, pawns));
@@ -43,19 +61,31 @@ export function evalX(pawns, mate = false) {
 
 export class Trainer {
   /**
-   * els: {board, arrows, meta, playedLabel, played, question, scan, actions, safe, reveal, fixRow, showMe,
-   *       feedback, next, side, boxes, done, acc, streak}
+   * els: {board, arrows, pop, meta, step, playedLabel, played, question, scan, actions, safe, reveal, fixRow, showMe,
+   *       plies, prev, fwd, material, feedback, next, fixGo, side, boxes, done, acc, streak}
    * evaluate(fen) -> Promise<{cp, mate}> from White's view; used by the fix step. tolerance in centipawns.
+   * cue(kind): "right" / "wrong", for a sound.
    */
-  constructor(els, { load, save, evaluate = null, tolerance = 100 }) {
-    Object.assign(this, { els, load, save, evaluate, tolerance });
+  constructor(els, { load, save, evaluate = null, tolerance = 100, cue = () => {} }) {
+    Object.assign(this, { els, load, save, evaluate, tolerance, cue });
     this.items = [];
     this.progress = { boxes: {}, seen: {}, turn: 0, stats: { done: 0, ok: 0, streak: 0 } };
     this.cur = null;
+    this.frames = [];
     els.safe.addEventListener("click", () => this.say(null));
     els.reveal.addEventListener("click", () => this.reveal());
     els.showMe.addEventListener("click", () => this.showFix());
     els.next.addEventListener("click", () => this.next());
+    els.fixGo.addEventListener("click", () => this.startFix());
+    els.prev.addEventListener("click", () => this.goto(this.view - 1));
+    els.fwd.addEventListener("click", () => this.goto(this.view + 1));
+    els.plies.addEventListener("click", (e) => { const b = e.target.closest("[data-i]"); if (b) this.goto(+b.dataset.i); });
+    document.addEventListener("keydown", (e) => {
+      if (!this.cur || e.altKey || e.ctrlKey || e.metaKey || !els.board.offsetParent) return;
+      if (e.target.closest?.("input, textarea, select, .dropdown, [contenteditable]")) return;
+      if (e.key === "ArrowLeft") { e.preventDefault(); this.goto(this.view - 1); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); this.goto(this.view + 1); }
+    });
     els.scan.addEventListener("click", (e) => {
       const chip = e.target.closest("[data-kind]");
       if (!chip || this.step !== "find") return;
@@ -97,35 +127,150 @@ export class Trainer {
 
   litSquares() {
     const moveSq = new Set(), loose = new Set();
-    if (this.step !== "find") return { moveSq, loose };
+    if (this.step !== "find" || this.view !== this.liveIdx) return { moveSq, loose };
     for (const kind of ["checks", "captures"]) if (this.lit.has(kind)) for (const m of this.scan[kind]) { moveSq.add(m.from); moveSq.add(m.to); }
     if (this.lit.has("loose")) for (const s of this.scan.loose) loose.add(s);
     return { moveSq, loose };
   }
 
-  render() {
+  /** Can the player move on the board right now? Only on the live frame of a live step. */
+  interactive() { return this.live() && !this.busy && this.view === this.liveIdx; }
+
+  render(anim = null) {
     const el = this.els.board;
     el.replaceChildren();
-    const moves = this.live() && !this.busy ? this.game.moves({ verbose: true }) : [];
+    const frame = this.frames[this.view], lm = frame?.move;
+    const moves = this.interactive() ? this.game.moves({ verbose: true }) : [];
     const targets = this.sel ? moves.filter((m) => m.from === this.sel) : [];
     const { moveSq, loose } = this.litSquares();
     for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
       const s = this.sqName(r, c), p = this.game.get(s);
       const b = document.createElement("button");
       b.type = "button";
+      b.dataset.sq = s;
       b.className = "sq" + ((FILES.indexOf(s[0]) + +s[1]) % 2 === 1 ? " d" : "") + (this.sel === s ? " sel" : "");
       b.setAttribute("aria-label", s + (p ? ` ${p.color === "w" ? "white" : "black"} ${NAME[p.type]}` : ""));
       const add = (cls, text) => { const x = document.createElement("span"); x.className = cls; if (text) x.textContent = text; b.appendChild(x); };
-      if (this.lastMove && (s === this.lastMove[0] || s === this.lastMove[1])) add("lm");
+      if (lm && (s === lm.from || s === lm.to)) add("lm");
       if (moveSq.has(s)) add("hintmark");
       if (loose.has(s)) add("loose");
       if (c === 0) add("coord r", s[1]);
       if (r === 7) add("coord f", s[0]);
       if (p) add(`pc ${p.color}${p.type.toUpperCase()}`);
       if (targets.some((m) => m.to === s)) add("target");
+      if (this.badge && this.badge.frame === this.view && this.badge.sq === s) {
+        const v = document.createElement("span");
+        v.className = `verdict ${this.badge.ok ? "ok" : "no"}`;
+        v.innerHTML = `<svg class="icon"><use href="#i-${this.badge.ok ? "check" : "x"}"/></svg>`;
+        b.appendChild(v);
+      }
       b.addEventListener("click", () => this.tap(s));
       el.appendChild(b);
     }
+    this.els.arrows.innerHTML = this.arrowFrame === this.view
+      ? this.arrowList.map(([f, t, dashed]) => this.arrow(f, t, dashed)).join("") : "";
+    this.paintLine();
+    if (anim) this.animate(anim);
+  }
+
+  // ---------- the line: frames, stepping, animation ----------
+
+  /** Add a position reached by `move` (a chess.js verbose move) from frame `parent`. Returns its index. */
+  addFrame(fen, move, parent, who, san) {
+    this.frames.push({ fen, move, parent, who, san });
+    return this.frames.length - 1;
+  }
+
+  /** Show frame i. Moving to a child frame plays its move; moving back to the parent plays it in reverse. */
+  goto(i, { quiet = false } = {}) {
+    clearTimeout(this.introTimer);
+    if (i < 0 || i >= this.frames.length || (i === this.view && !quiet)) return;
+    const from = this.view, fr = this.frames[i], old = this.frames[from];
+    let anim = null;
+    if (fr.parent === from && fr.move?.from) anim = { move: fr.move, reverse: false };
+    else if (old?.parent === i && old.move?.from) anim = { move: old.move, reverse: true };
+    this.view = i;
+    this.game = new Chess(fr.fen);
+    this.sel = null;
+    this.render(anim);
+  }
+
+  paintLine() {
+    const icon = (color, type) => `<span class="cap pc ${color}${type.toUpperCase()}" aria-hidden="true"></span>`;
+    this.els.plies.innerHTML = this.frames.map((fr, i) => {
+      const m = fr.move, cap = m?.captured ? icon(m.color === "w" ? "b" : "w", m.captured) : "";
+      const name = fr.san ? esc(fr.san) : "Start";
+      const title = !m ? "Before your move" : m.captured ? `${fr.san} takes a ${NAME[m.captured]}` : fr.san;
+      return `<li><button type="button" class="ply ${fr.who || "start"}${i === this.view ? " on" : ""}" data-i="${i}"` +
+        ` aria-current="${i === this.view ? "step" : "false"}" title="${esc(title)}">${name}${cap}</button></li>`;
+    }).join("");
+    const on = this.els.plies.querySelector(".on"), box = this.els.plies;   // keep the shown move in the row's view
+    if (on && (on.offsetLeft < box.scrollLeft || on.offsetLeft + on.offsetWidth > box.scrollLeft + box.clientWidth))
+      box.scrollLeft = on.offsetLeft + on.offsetWidth - box.clientWidth;
+    this.els.prev.disabled = this.view <= 0;
+    this.els.fwd.disabled = this.view >= this.frames.length - 1;
+    const fr = this.frames[this.view];
+    if (!fr) return;
+    const mat = material(fr.fen) * (this.meW() ? 1 : -1);
+    this.els.material.textContent = mat ? `Material: you ${mat > 0 ? "+" : "−"}${Math.abs(mat)}` : "Material: even";
+  }
+
+  animate({ move, reverse }) {
+    if (reducedMotion()) return;
+    const board = this.els.board, size = board.clientWidth / 8;
+    const square = (s) => board.querySelector(`[data-sq="${s}"]`);
+    const slide = (a, b) => {   // the piece now standing on b arrives from a
+      const sq = square(b), pc = sq?.querySelector(".pc");
+      if (!pc?.animate) return;
+      const [x1, y1] = this.xy(a), [x2, y2] = this.xy(b);
+      sq.style.zIndex = 3;
+      const an = pc.animate([{ transform: `translate(${(x1 - x2) * size}px, ${(y1 - y2) * size}px)` }, { transform: "none" }],
+        { duration: SLIDE_MS, easing: "cubic-bezier(.2,.7,.3,1)" });
+      an.onfinish = () => { sq.style.zIndex = ""; };
+    };
+    const [a, b] = reverse ? [move.to, move.from] : [move.from, move.to];
+    slide(a, b);
+    if (/[kq]/.test(move.flags)) {    // castling: the rook moves too
+      const r = move.from[1], [rf, rt] = move.flags.includes("k") ? ["h" + r, "f" + r] : ["a" + r, "d" + r];
+      reverse ? slide(rt, rf) : slide(rf, rt);
+    }
+    if (!move.captured) return;
+    const capSq = move.flags.includes("e") ? move.to[0] + move.from[1] : move.to;
+    const capClass = `pc ${move.color === "w" ? "b" : "w"}${move.captured.toUpperCase()}`;
+    const sq = square(capSq);
+    if (!sq) return;
+    if (reverse) {      // the captured piece comes back
+      const pc = [...sq.querySelectorAll(".pc")].find((p) => p.className === capClass);
+      pc?.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: SLIDE_MS, delay: SLIDE_MS / 2, fill: "backwards" });
+    } else {            // the captured piece fades under the arriving one
+      const ghost = document.createElement("span");
+      ghost.className = capClass + " ghost";
+      sq.insertBefore(ghost, sq.querySelector(".pc"));
+      const an = ghost.animate?.([{ opacity: 1 }, { opacity: 0 }], { duration: SLIDE_MS * 1.4, easing: "ease-in" });
+      if (an) an.onfinish = () => ghost.remove(); else ghost.remove();
+    }
+  }
+
+  /** A big check over the board, fading out. */
+  pop() {
+    const el = this.els.pop;
+    if (!el) return;
+    el.classList.remove("show");
+    void el.offsetWidth;
+    el.classList.add("show");
+    clearTimeout(this.popTimer);
+    this.popTimer = setTimeout(() => el.classList.remove("show"), 1000);
+  }
+
+  shake() {
+    if (reducedMotion()) return;
+    this.els.board.parentElement.animate?.(
+      [0, -7, 7, -4, 4, 0].map((x) => ({ transform: `translateX(${x}px)` })), { duration: 300, easing: "ease-out" });
+  }
+
+  setArrows(list, frame) {
+    this.arrowList = list;
+    this.arrowFrame = frame;
   }
 
   /** Solid arrow = the right move, dashed = a try that didn't work. */
@@ -138,12 +283,9 @@ export class Trainer {
       `<polygon points="${hx},${hy} ${bx + px},${by + py} ${bx - px},${by - py}"/>`;
   }
 
-  drawArrows(list) {
-    this.els.arrows.innerHTML = list.map(([f, t, dashed]) => this.arrow(f, t, dashed)).join("");
-  }
-
   tap(s) {
     if (!this.live() || this.busy) return;
+    if (this.view !== this.liveIdx) return this.goto(this.liveIdx);   // stepping back through the line: return first
     const p = this.game.get(s);
     if (this.sel) {
       const m = this.game.moves({ verbose: true }).find((m) => m.from === this.sel && m.to === s);
@@ -166,7 +308,10 @@ export class Trainer {
     if (right) return this.found(m);
     // Wrong: say so, keep the board live.
     this.tries++;
-    if (m) this.drawArrows([[m.from, m.to, true]]);
+    this.cue("wrong");
+    this.shake();
+    this.setArrows(m ? [[m.from, m.to, true]] : [], this.liveIdx);
+    this.badge = m ? { sq: m.to, ok: false, frame: this.liveIdx } : null;
     const msg = cur.kind === "threat"
       ? (m ? `<b>${esc(m.san)}</b> isn't it. Try again.` : "There is a punishment. Keep looking.")
       : `<b>${esc(m.san)}</b> doesn't win anything. Look again.`;
@@ -181,50 +326,82 @@ export class Trainer {
     this.found(null, true);
   }
 
-  /** The find step is over: show their reply, then go on to the fix step for real blunders. */
+  /** The find step is over: play their reply on the board, then wait for the player to go on to the fix step. */
   found(m, revealed = false) {
     const cur = this.cur, white = this.meW(), opp = this.opp();
     const theirs = white ? num(cur.move, false, cur.reply) : num(cur.move + 1, true, cur.reply);
     this.els.scan.hidden = true;
     this.els.actions.hidden = true;
+    if (!revealed) { this.cue("right"); this.pop(); }
+    let rm = null;
+    try { rm = new Chess(cur.fen).move(cur.reply); } catch {}
+    this.setArrows([], null);
+    this.step = "found";
+    this.liveIdx = null;
+    if (rm) {
+      const i = this.addFrame(this.after(cur.fen, rm), rm, this.findIdx, "them", theirs);
+      this.badge = !revealed && cur.kind === "threat" ? { sq: rm.to, ok: true, frame: i } : null;
+      this.goto(i);
+    }
+    const myCap = this.frames[this.findIdx].move?.captured;
     if (cur.kind === "threat") {
-      let rm = null;
-      try { rm = new Chess(cur.fen).move(cur.reply); } catch {}
-      if (rm) this.drawArrows([[rm.from, rm.to, false]]);
       const head = revealed ? "Here it is" : this.firstTry ? "Found it" : "Got there";
       const bar = cur.mate != null && cur.mate > 0 ? `<div class="mate">Mate in ${cur.mate}</div>` : this.evalBar(cur.evb, cur.eva);
       this.feedback(this.firstTry === true, head,
-        this.card(`${opp}'s punishment`, theirs, "key") + this.card("You played", num(cur.move, white, cur.san), "struck"), bar);
-      if (cur.before_fen && cur.better) return this.startFix();
+        this.card(`${opp}'s punishment`, theirs, "key", this.what(rm)) +
+        this.card("You played", num(cur.move, white, cur.san), "struck", myCap ? `took a ${NAME[myCap]}` : ""), bar);
+      if (cur.before_fen && cur.better) {
+        this.els.fixGo.hidden = false;
+        this.els.fixGo.focus({ preventScroll: true });
+        this.showInDrill(this.els.fixGo);
+        this.paintStep();
+        return;
+      }
       this.finish();
     } else {
-      this.drawArrows([]);
       this.feedback(this.firstTry === true, revealed ? "It was safe" : this.firstTry ? "Safe. Well judged" : "Safe after all",
-        this.card(`${opp}'s best try`, theirs), this.evalBar(cur.evb, cur.eva));
+        this.card(`${opp}'s best try`, theirs, "", this.what(rm)), this.evalBar(cur.evb, cur.eva));
       this.finish();
     }
+  }
+
+  /** What their move does, in a few words: checkmate, takes your knight, check. */
+  what(m) {
+    if (!m) return "";
+    if (m.san.endsWith("#")) return "checkmate";
+    if (m.captured) return `takes your ${NAME[m.captured]}${m.san.endsWith("+") ? ", check" : ""}`;
+    return m.san.endsWith("+") ? "check" : "";
+  }
+
+  /** FEN after playing a verbose move from `fen`. */
+  after(fen, m) {
+    const g = new Chess(fen);
+    g.move({ from: m.from, to: m.to, promotion: m.promotion });
+    return g.fen();
   }
 
   // ---------- step 2: fix my move ----------
 
   startFix() {
-    const cur = this.cur;
+    if (this.step !== "found") return;
     this.step = "fix";
     this.fixTries = 0;
-    this.game = new Chess(cur.before_fen);
-    this.lastMove = null;
-    this.drawArrows([]);       // the punishment arrow belongs to the other position
+    this.liveIdx = this.beforeIdx;
+    this.badge = null;
+    this.setArrows([], null);
+    this.els.fixGo.hidden = true;
     this.els.playedLabel.textContent = "Instead of";
     this.els.question.textContent = "What should you have played?";
     this.els.fixRow.hidden = false;
     this.els.showMe.hidden = true;
-    this.render();
+    this.paintStep();
+    this.goto(this.beforeIdx, { quiet: true });
   }
 
   async tryFix(m) {
     const cur = this.cur;
     this.fixTries++;
-    this.drawArrows([[m.from, m.to, false]]);
+    this.setArrows([[m.from, m.to, false]], this.liveIdx);
     if (m.san === cur.better) return this.fixed(m.san, null, true);
     if (m.from + m.to === cur.from + cur.to) return this.fixNote(m, "That's the move you played.");
     if (!this.evaluate) return this.fixNote(m, "Not the engine's move. Try again.");
@@ -244,7 +421,10 @@ export class Trainer {
   }
 
   fixNote(m, msg) {
-    this.drawArrows([[m.from, m.to, true]]);
+    this.cue("wrong");
+    this.shake();
+    this.setArrows([[m.from, m.to, true]], this.liveIdx);
+    this.badge = { sq: m.to, ok: false, frame: this.liveIdx };
     this.note(msg);
     this.els.showMe.hidden = false;
     this.render();
@@ -260,13 +440,21 @@ export class Trainer {
     const cur = this.cur, white = this.meW(), opp = this.opp();
     let m = null;
     try { m = new Chess(cur.before_fen).move(san); } catch {}
-    if (m) this.drawArrows([[m.from, m.to, false]]);
+    this.setArrows([], null);
+    this.step = "done";
+    this.liveIdx = null;
+    if (!shown) { this.cue("right"); this.pop(); }
+    if (m) {
+      const i = this.addFrame(this.after(cur.before_fen, m), m, this.beforeIdx, "fix", num(cur.move, white, m.san));
+      this.badge = shown ? null : { sq: m.to, ok: true, frame: i };
+      this.goto(i);
+    }
     const theirs = white ? num(cur.move, false, cur.reply) : num(cur.move + 1, true, cur.reply);
     const cards =
       this.card(`${opp}'s punishment`, theirs) +
       this.card("You played", num(cur.move, white, cur.san), "struck") +
-      (shown ? this.card("Should have played", num(cur.move, white, cur.better), "key")
-        : this.card(best ? "Your fix · engine's move" : "Your fix holds", num(cur.move, white, san), "key") +
+      (shown ? this.card("Should have played", num(cur.move, white, cur.better), "key", m?.captured ? `takes a ${NAME[m.captured]}` : "")
+        : this.card(best ? "Your fix · engine's move" : "Your fix holds", num(cur.move, white, san), "key", m?.captured ? `takes a ${NAME[m.captured]}` : "") +
           (best ? "" : this.card("Engine's move", num(cur.move, white, cur.better))));
     const note = evalAfter == null ? "" : `<div class="evalbar-note label">After ${esc(san)} ${fmt(evalAfter)} · best ${fmt(cur.evb)}</div>`;
     this.feedback(!shown && this.firstTry === true, shown ? "Here's the fix" : this.firstTry ? "Found and fixed" : "Fixed", cards, note);
@@ -277,11 +465,37 @@ export class Trainer {
 
   finish() {
     this.step = "done";
-    this.els.drill?.scrollTo?.(0, 0);
+    this.liveIdx = null;
     this.els.fixRow.hidden = true;
+    this.els.fixGo.hidden = true;
     this.els.next.hidden = false;
-    this.els.next.focus();
+    this.els.next.focus({ preventScroll: true });
+    this.showInDrill(this.els.next);
+    this.paintStep();
     this.render();
+  }
+
+  /** On desktop the panel scrolls by itself: bring `el` into it. On phones the page scrolls, and is left alone
+   *  so the board stays in view. */
+  showInDrill(el) {
+    const d = this.els.drill;
+    if (!d || d.scrollHeight <= d.clientHeight) return;
+    const r = el.getBoundingClientRect(), dr = d.getBoundingClientRect();
+    if (r.bottom > dr.bottom) d.scrollTop += r.bottom - dr.bottom + 8;
+    else if (r.top < dr.top) d.scrollTop -= dr.top - r.top + 8;
+  }
+
+  /** "Step 1 of 2 · ..." above the question, so the player knows where they are and what comes next. */
+  paintStep() {
+    const cur = this.cur, total = cur.kind === "threat" && cur.before_fen && cur.better ? 2 : 1;
+    const text = {
+      find: `Step 1 of ${total} · Find their reply`,
+      found: "Step 1 done · Next: fix your move",
+      fix: "Step 2 of 2 · Find a better move",
+      done: "Done · ← → replays the moves",
+    }[this.step];
+    this.els.step.textContent = text || "";
+    this.els.step.dataset.step = this.step;
   }
 
   grade(ok) {
@@ -325,8 +539,8 @@ export class Trainer {
     </div>`;
   }
 
-  card(label, move, cls = "") {
-    return `<div class="card ${cls}"><span class="label">${label}</span><b>${esc(move)}</b></div>`;
+  card(label, move, cls = "", sub = "") {
+    return `<div class="card ${cls}"><span class="label">${label}</span><b>${esc(move)}</b>${sub ? `<span class="sub">${esc(sub)}</span>` : ""}</div>`;
   }
 
   paintStats() {
@@ -352,7 +566,16 @@ export class Trainer {
     this.tries = 0;
     this.firstTry = null;
     this.busy = false;
-    this.lastMove = [cur.from, cur.to];
+    this.badge = null;
+    this.setArrows([], null);
+    // The line: before my move (when known), then my move.
+    this.frames = [];
+    let mine = null;
+    if (cur.before_fen) { try { mine = new Chess(cur.before_fen).move(cur.san); } catch {} }
+    this.beforeIdx = mine ? this.addFrame(cur.before_fen, null, null, null, "") : null;
+    this.findIdx = this.addFrame(cur.fen, mine || { from: cur.from, to: cur.to, flags: "", color: cur.color },
+      mine ? this.beforeIdx : null, "me", num(cur.move, this.meW(), cur.san));
+    this.liveIdx = this.findIdx;
     this.els.meta.innerHTML = `<span>vs ${esc(cur.opp)}</span><span>${+mo}/${+d}</span><span>${RESULT[cur.result] || ""}</span>`;
     this.els.playedLabel.textContent = "You played";
     this.els.played.textContent = num(cur.move, this.meW(), cur.san);
@@ -366,9 +589,20 @@ export class Trainer {
     this.els.reveal.hidden = true;
     this.els.fixRow.hidden = true;
     this.els.next.hidden = true;
+    this.els.fixGo.hidden = true;
     this.paintScan();
-    this.drawArrows([]);
-    this.render();
+    this.paintStep();
     this.paintStats();
+    // Show the position before my move, then play my move, so it's clear what moved and what it took.
+    clearTimeout(this.introTimer);
+    if (mine && !reducedMotion()) {
+      this.view = this.beforeIdx;
+      this.game = new Chess(cur.before_fen);
+      this.render();
+      this.introTimer = setTimeout(() => { if (this.cur === cur && this.view === this.beforeIdx && this.step === "find") this.goto(this.findIdx); }, INTRO_MS);
+    } else {
+      this.view = this.findIdx;
+      this.render();
+    }
   }
 }

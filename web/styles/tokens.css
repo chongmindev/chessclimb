@@ -22,6 +22,11 @@
   --board-mark: var(--accent); /* last-move frame, hint flags, loose hatch */
   --coord-light: var(--accent);   /* coordinates on light squares */
   --coord-dark: #ffffff;          /* coordinates on dark squares */
+  /* Answer verdicts on the board: right = accent with a check, wrong = black with a cross */
+  --ok-bg: var(--accent);
+  --ok-fg: #ffffff;
+  --no-bg: #000000;
+  --no-fg: #ffffff;
 
   /* Lines carry the structure */
   --hairline: 1px solid var(--hairline-color);
@@ -72,5 +77,7 @@
   --board-mark: #ffffff;       /* indigo marks vanish on indigo squares at night; white doesn't */
   --coord-light: #2b2e6a;
   --coord-dark: #eceeff;
+  --ok-bg: #2b2e6a;             /* deep indigo: the light accent would vanish on the mid-tone board */
+  --no-bg: #0e0e10;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%23f2f2f2' stroke-width='1.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }

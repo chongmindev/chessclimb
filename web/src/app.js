@@ -4,6 +4,7 @@ import { ChessCom } from "./chesscom.js";
 import { EnginePool, Evaluator } from "./evals.js";
 import { Scan } from "./scan.js";
 import { Select } from "./select.js";
+import { sound } from "./sound.js";
 import { IdbStore, MemoryStore } from "./store.js";
 import { Trainer } from "./trainer.js";
 import { UciEngine } from "./uci.js";
@@ -72,6 +73,17 @@ function setupTheme() {
     try { localStorage.setItem("theme", next); } catch {}
     paint();
   });
+  paint();
+}
+
+function setupSound() {
+  const btn = $("btn-sound");
+  const paint = () => {
+    btn.setAttribute("aria-pressed", String(sound.on));
+    btn.title = sound.on ? "Sound on" : "Sound off";
+    btn.setAttribute("aria-label", btn.title);
+  };
+  btn.addEventListener("click", () => { sound.set(!sound.on); paint(); if (sound.on) sound.play("right"); });
   paint();
 }
 
@@ -150,18 +162,20 @@ async function start(store, trainer, username, rangeValue, timeClasses) {
 
 async function main() {
   setupTheme();
+  setupSound();
   const range = new Select($("range"));
   fitHero();
   document.fonts?.ready.then(fitHero);
   new ResizeObserver(fitHero).observe(document.querySelector(".stage"));
   const store = await openStore();
   const trainer = new Trainer({
-    board: $("board"), arrows: $("arrows"), meta: $("meta"), playedLabel: $("played-label"), played: $("played"), question: $("question"),
+    board: $("board"), arrows: $("arrows"), pop: $("pop"), meta: $("meta"), step: $("step"), playedLabel: $("played-label"), played: $("played"), question: $("question"),
     scan: $("scan"), feedback: $("feedback"), drill: document.querySelector(".drill"), note: $("note"), reveal: $("btn-reveal"), fixRow: $("fix-row"), showMe: $("btn-show"),
-    actions: $("actions"), next: $("btn-next"), safe: $("btn-safe"),
+    actions: $("actions"), next: $("btn-next"), fixGo: $("btn-fix"), safe: $("btn-safe"),
+    plies: $("plies"), prev: $("btn-prev"), fwd: $("btn-fwd"), material: $("material"),
     side: $("device-side"), boxes: $("boxes"),
     done: $("st-done"), acc: $("st-acc"), streak: $("st-streak"),
-  }, { load: async () => null, save: async () => {}, tolerance: cfg.trainer.fix_tolerance });
+  }, { load: async () => null, save: async () => {}, tolerance: cfg.trainer.fix_tolerance, cue: (kind) => sound.play(kind) });
 
   const last = await store.get("last");
   if (last) {

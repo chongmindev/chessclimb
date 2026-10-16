@@ -313,12 +313,60 @@ body[data-view="drill"] .form:not(.open) .form-summary { display: flex; }
     border-top: 1px solid color-mix(in srgb, var(--paper) 35%, transparent); }
   .scan { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .scan > .label { grid-column: 1 / -1; }
+  .line > .label:first-child { display: none; }
   .scan .chip { justify-content: center; padding: 0 8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+  .pop.show { opacity: 1; }   /* no pop animation: the check just shows for a second */
 }
+
+/* Where you are: step label, and the line of moves you can step through (← →) */
+.step-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; margin-top: -4px; }
+.step { margin: 0; color: var(--accent); font-weight: 700; }
+.line { display: flex; align-items: center; gap: 8px; }
+.line > .label:first-child { width: 72px; flex: none; }
+/* One row; scrolls sideways when the moves don't fit */
+.plies { position: relative; display: flex; gap: 6px; margin: 0; padding: 0; list-style: none; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.plies li { flex: none; }
+.step-btn { flex: none; }
+.ply { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 10px; border: var(--thin); background: var(--paper);
+  color: var(--ink); cursor: pointer; font: 500 0.8125rem var(--f-mono); transition: background var(--t), color var(--t); }
+.ply:hover { background: var(--tint); }
+.ply.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.ply.start { font-style: italic; }
+.ply.fix { border-style: dashed; }
+.ply .cap { width: 18px; height: 18px; flex: none; }
+.ply.on .cap { background-color: var(--sq-light); }
+.step-btn { display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; border: var(--thin); background: transparent;
+  color: var(--ink); cursor: pointer; transition: background var(--t), color var(--t); }
+.step-btn:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+.step-btn:disabled { opacity: 0.3; cursor: default; }
+.step-btn:focus-visible, .ply:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.card .sub { font: 500 0.6875rem/1.3 var(--f-mono); letter-spacing: var(--track-label); text-transform: uppercase; opacity: 0.85; }
+
+/* Verdicts: a badge on the square you moved to, and a check that pops over the board when you get it */
+.sq .verdict { position: absolute; top: 3%; right: 3%; width: 36%; height: 36%; display: grid; place-items: center; z-index: 2;
+  pointer-events: none; border: 2px solid #ffffff; }
+.sq .verdict.ok { background: var(--ok-bg); color: var(--ok-fg); }
+.sq .verdict.no { background: var(--no-bg); color: var(--no-fg); }
+.sq .verdict .icon { width: 72%; height: 72%; stroke-width: 3; }
+.pc.ghost { position: absolute; }
+.pop { position: absolute; left: 39%; top: 39%; width: 22%; height: 22%; display: grid; place-items: center; z-index: 4; pointer-events: none;
+  background: var(--ok-bg); color: var(--ok-fg); border: 3px solid #ffffff; opacity: 0; }
+.pop .icon { width: 64%; height: 64%; stroke-width: 2.5; }
+.pop.show { animation: pop 1s ease-out forwards; }
+@keyframes pop {
+  0% { opacity: 0; transform: scale(0.5); }
+  14% { opacity: 1; transform: scale(1.08); }
+  24% { transform: scale(1); }
+  65% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1); }
+}
+.theme-btn .off { display: none; }
+.theme-btn[aria-pressed="false"] .on { display: none; }
+.theme-btn[aria-pressed="false"] .off { display: block; }
 
 /* Try-again notes, the fix step, and the game link's arrow */
 .note { margin: 0; padding: 8px 12px; border-left: var(--thick); border-color: var(--accent); background: var(--tint); font-size: 0.9375rem; }
