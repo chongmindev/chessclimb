@@ -364,26 +364,27 @@ body[data-view="drill"] .form:not(.open) .form-summary { display: flex; }
 .fb.ok .walk .label { color: color-mix(in srgb, var(--paper) 70%, transparent); }
 .walk-wait { margin: 0; font-style: italic; opacity: 0.75; }
 .walk-steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
-.walk-steps li { display: grid; grid-template-columns: 6.5em 1fr; gap: 10px; align-items: baseline; padding: 3px 8px;
-  font-size: 0.9375rem; line-height: 1.35; border-left: 3px solid transparent; opacity: 0.6; transition: opacity var(--t); }
-.walk-steps li:only-child, .walk-steps li.on { opacity: 1; border-left-color: var(--accent); }
+.walk-steps button { display: grid; grid-template-columns: 6.5em 1fr; gap: 10px; align-items: baseline; width: 100%; padding: 3px 8px;
+  border: 0; border-left: 3px solid transparent; background: none; color: inherit; font: inherit; font-size: 0.9375rem; line-height: 1.35;
+  text-align: left; cursor: pointer; opacity: 0.6; transition: opacity var(--t); }
+.walk-steps button:hover { opacity: 0.9; }
+.walk-steps li:only-child button, .walk-steps li.on button { opacity: 1; border-left-color: var(--accent); }
+.walk-steps li:only-child button { cursor: default; }
+.walk-steps button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .walk-steps li b { font: 600 0.875rem var(--f-mono); white-space: nowrap; }
 .walk-steps li span b { font: 600 0.9em var(--f-mono); }
-.walk-steps .walk-sum { display: block; opacity: 1; font-style: italic; font-family: var(--f-display); font-size: 1.125rem; padding-left: 11px; }
-.walk-steps li:not([hidden]) { animation: walk-in 220ms ease-out; }
-@keyframes walk-in { from { opacity: 0; transform: translateY(4px); } }
-.walk-replay { justify-self: start; display: inline-flex; align-items: center; gap: 6px; }
-.walk-replay .icon { width: 16px; height: 16px; }
+.walk-sum { margin: 0; font-style: italic; font-family: var(--f-display); font-size: 1.125rem; padding-left: 11px; }
+.walk-step { justify-self: start; display: inline-flex; align-items: center; gap: 6px; }
+.walk-step .icon { width: 16px; height: 16px; }
 
-/* Rewind before the fix step: the board dims, a tag shows, and the moves run backwards */
-.rewind-tag { position: absolute; top: 10px; left: 10px; z-index: 4; display: none; align-items: center; gap: 6px; padding: 4px 10px;
-  background: var(--no-bg); color: var(--no-fg); font: 700 0.75rem var(--f-mono); letter-spacing: var(--track-label); text-transform: uppercase; pointer-events: none; }
-.rewind-tag .icon { width: 16px; height: 16px; fill: currentColor; stroke: none; }
-.boardbox.rewinding .rewind-tag { display: inline-flex; animation: rewind-blink 0.6s steps(1) infinite; }
-.boardbox.rewinding .board { filter: saturate(0.35) brightness(0.92); transition: filter 200ms; }
-.boardbox.rewinding::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 3;
-  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(0, 0, 0, 0.06) 3px 4px); }
-@keyframes rewind-blink { 50% { opacity: 0.55; } }
+/* Rewind before the fix step: a quiet tag fades in, the board fades slightly, and the moves run backwards */
+.rewind-tag { position: absolute; top: 8px; left: 8px; z-index: 4; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px;
+  background: var(--paper); color: var(--ink-muted); border: var(--hairline); font: 500 0.6875rem var(--f-mono); letter-spacing: var(--track-label);
+  text-transform: uppercase; pointer-events: none; opacity: 0; transition: opacity 150ms; }
+.rewind-tag .icon { width: 12px; height: 12px; fill: currentColor; stroke: none; }
+.boardbox.rewinding .rewind-tag { opacity: 1; }
+.board { transition: opacity 150ms; }
+.boardbox.rewinding .board { opacity: 0.85; }
 
 /* Verdicts: a badge on the square you moved to, and a check that pops over the board when you get it */
 .sq .verdict { position: absolute; top: 3%; right: 3%; width: 36%; height: 36%; display: grid; place-items: center; z-index: 2;

@@ -126,6 +126,7 @@ interface washes, `--sq-light` / `--sq-dark` for the board, `--board-mark` for m
 | Component | Class | Notes |
 |---|---|---|
 | Bar | `.bar` | 56px, wordmark left (the favicon's knight in page ink + name, a link home; hover tips the hat), links, sound and theme right (no status chip: the scan's progress shows in the panel), 4px rule below |
+| The idea | `.walk` | after the fix: every caption shows at once; the engine's move plays, then you step with Next move or by clicking a row (no autoplay) |
 | Footer | `.foot` | full width under both columns, lined up with them, words from the left |
 | Step previews | `.how .peek` | hover or focus on Fetch / Scan / Drill shows a small looping picture of that step |
 | Layout | `.main` | desktop: left and right columns share one top and one bottom, in the intro and in the drill |
@@ -141,7 +142,7 @@ interface washes, `--sq-light` / `--sq-dark` for the board, `--board-mark` for m
 | Question | `.question` | Playfair italic, one line ("Can White punish it?") |
 | Scan chip | `.chip[data-kind]` | Checks / Captures / Loose; shows `?` until pressed, then the count, accent fill, and lights the board |
 | Answer row | `.answer` | an accent square + "Move their piece on the board", *or*, "Nothing works"; after a wrong try a note says so and **Reveal** appears |
-| Fix row | `#fix-row` | after the punishment: the board rewinds to before my move; "Move your piece on the board", **Show me** after a wrong fix |
+| Fix row | `#fix-row` | after the punishment: the board rewinds to before my move (small ◀◀ Rewind tag, slight fade, about half a second); "Move your piece on the board", **Show me** after a wrong fix |
 | Note | `.note` | try-again message: accent wash with a 4px accent edge |
 | Feedback | `.fb.ok`, `.fb.no` | verdict and game link; move cards; eval bar or "Mate in N". Inverted only if the first try was right; framed otherwise. After the fix step one block replaces it (punishment, your move, your fix, engine's move) |
 | Game link | `.game-link` | the underline never grows; the ↗ arrow nudges up-right on hover |

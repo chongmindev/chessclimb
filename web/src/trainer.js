@@ -20,8 +20,7 @@ const FILES = "abcdefgh";
 const RESULT = { win: "Won", loss: "Lost", draw: "Drawn" };
 const EVAL_SPAN = 6;   // the eval bar runs from -6 to +6 pawns; beyond that (or mate) pins to the end
 const SLIDE_MS = 260;     // one move's slide
-const REWIND_MS = 420;    // a move played backwards, slower so it reads as a rewind
-const WALK_MS = 1700;     // time on each move of the walkthrough
+const REWIND_MS = 320;    // a move played backwards, a little slower than forwards
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const INTRO_MS = 450;     // a new position shows "before" this long, then my move plays
 const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -398,11 +397,11 @@ export class Trainer {
     const box = this.els.board.parentElement, motion = !reducedMotion();
     box.classList.add("rewinding");
     this.els.step.textContent = "Rewinding to before your move";
-    if (motion) await sleep(220);
+    if (motion) await sleep(120);
     for (const i of path) {
       if (i == null || i === this.view) continue;
       this.goto(i, { ms: REWIND_MS });
-      if (motion) await sleep(REWIND_MS + 160);
+      if (motion) await sleep(REWIND_MS + 60);
     }
     box.classList.remove("rewinding");
     this.paintStep();
@@ -497,43 +496,33 @@ export class Trainer {
       if (k === 0) return at >= 0 ? at : (at = this.addFrame(ply.after, ply.move, this.beforeIdx, "fix", numbered(ply.before, ply.move)));
       return (at = this.addFrame(ply.after, ply.move, at, "pv", numbered(ply.before, ply.move)));
     });
-    box.innerHTML = head + `<ol class="walk-steps">` +
-      w.steps.map((st, k) => `<li${k ? " hidden" : ""}><b>${esc(numbered(st.ply.before, st.ply.move))}</b><span>${st.text}</span></li>`).join("") +
-      (w.idea ? `<li class="walk-sum" hidden>${esc(w.summary)}</li>` : "") + `</ol>` +
-      (w.idea ? `<button class="btn ghost walk-replay" type="button" hidden><svg class="icon"><use href="#i-replay"/></svg>Replay</button>` : "");
-    box.querySelector(".walk-replay")?.addEventListener("click", () => { this.walkToken = token; this.playWalk(idx, box, token, true); });
-    this.showInDrill(this.els.next);
-    this.playWalk(idx, box, token, w.idea);
-  }
-
-  async playWalk(idx, box, token, all) {
-    const items = [...box.querySelectorAll(".walk-steps li")], replay = box.querySelector(".walk-replay");
-    const stale = () => this.walkToken !== token;
-    items.forEach((li, k) => { li.hidden = k > 0; li.classList.remove("on"); });
-    if (replay) replay.hidden = true;
-    if (this.view !== idx[0]) {          // start from "before" so the engine's move itself is seen
+    // Every caption shows at once; the board follows the row you're on. You step through (click a row or the button);
+    // nothing plays by itself after the engine's move.
+    const rows = w.steps.map((st, k) =>
+      `<li><button type="button" data-k="${k}"><b>${esc(numbered(st.ply.before, st.ply.move))}</b><span>${st.text}</span></button></li>`).join("");
+    box.innerHTML = head + `<ol class="walk-steps">${rows}</ol>` + (w.idea ? `<p class="walk-sum">${esc(w.summary)}</p>` : "") +
+      (idx.length > 1 ? `<button class="btn ghost walk-step" type="button"></button>` : "");
+    const step = box.querySelector(".walk-step");
+    const show = (k) => {
+      if (this.walkToken !== token) return;
+      this.walkAt = k;
+      this.goto(idx[k]);
+      box.querySelectorAll(".walk-steps li").forEach((li, j) => li.classList.toggle("on", j === k));
+      if (step) step.innerHTML = k < idx.length - 1 ? `Next move <svg class="icon"><use href="#i-next"/></svg>`
+        : `<svg class="icon"><use href="#i-replay"/></svg>From the start`;
+    };
+    box.querySelector(".walk-steps").addEventListener("click", (e) => { const b = e.target.closest("[data-k]"); if (b) show(+b.dataset.k); });
+    step?.addEventListener("click", () => show(this.walkAt < idx.length - 1 ? this.walkAt + 1 : 0));
+    // Start from "before" so the engine's move itself is seen.
+    if (this.view !== idx[0]) {
       this.goto(this.beforeIdx);
       await sleep(500);
-      if (stale()) return;
-      this.goto(idx[0]);
+      if (this.walkToken !== token) return;
     }
-    items[0].classList.add("on");
-    if (!all) return;
-    for (let k = 1; k < idx.length; k++) {
-      await sleep(WALK_MS);
-      if (stale()) return;
-      this.goto(idx[k]);
-      items[k - 1].classList.remove("on");
-      items[k].hidden = false;
-      items[k].classList.add("on");
-    }
-    await sleep(WALK_MS * 0.6);
-    if (stale()) return;
-    items.at(-2)?.classList.remove("on");
-    items.at(-1).hidden = false;
-    if (replay) replay.hidden = false;
+    show(0);
     this.showInDrill(this.els.next);
   }
+
 
   // ---------- shared ----------
 
