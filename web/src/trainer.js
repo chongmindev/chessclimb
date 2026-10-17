@@ -56,6 +56,22 @@ export function evalX(pawns, mate = false) {
   return 50 + (50 * v) / EVAL_SPAN;
 }
 
+/**
+ * The next position to show. Positions you haven't answered come first, in random order, so nothing repeats while
+ * there's something new. Once every position has been answered, reviews: the ones due (a miss after 3 answers,
+ * a hit after 6, 12, 24…), lowest box first, then the one you saw longest ago. Never the position just shown,
+ * unless it is the only one.
+ */
+export function pickNext(items, { boxes, seen, turn }, curId = null, rand = Math.random) {
+  const pool = items.length > 1 ? items.filter((it) => it.id !== curId) : items;
+  const fresh = pool.filter((it) => !(it.id in seen));
+  if (fresh.length) return fresh[Math.floor(rand() * fresh.length)];
+  const ago = (it) => turn - seen[it.id];
+  const due = pool.filter((it) => ago(it) >= 2 ** ((boxes[it.id] || 1) - 1) * 3);
+  const order = (a, b) => (boxes[a.id] || 0) - (boxes[b.id] || 0) || ago(b) - ago(a);
+  return (due.length ? due : pool).sort(order)[0];
+}
+
 export class Trainer {
   /**
    * els: {board, arrows, pop, meta, step, playedLabel, played, question, scan, actions, safe, reveal, fixRow, showMe,
@@ -107,17 +123,7 @@ export class Trainer {
   opp() { return this.meW() ? "Black" : "White"; }
   live() { return this.step === "find" || this.step === "fix"; }
 
-  pick() {
-    const { boxes, seen, turn } = this.progress;
-    const due = this.items.filter((it) => {
-      const b = boxes[it.id] || 0;
-      return !b || turn - (seen[it.id] ?? -99) >= 2 ** (b - 1) * 3;
-    });
-    const pool = (due.length ? due : this.items).filter((it) => !this.cur || it.id !== this.cur.id || this.items.length === 1);
-    pool.sort((a, b) => (boxes[a.id] || 0) - (boxes[b.id] || 0) || Math.random() - 0.5);
-    const low = pool.slice(0, Math.max(6, Math.ceil(pool.length / 4)));
-    return low[Math.floor(Math.random() * low.length)];
-  }
+  pick() { return pickNext(this.items, this.progress, this.cur?.id); }
 
   sqName(r, c) { return this.meW() ? FILES[c] + (8 - r) : FILES[7 - c] + (r + 1); }
   xy(sq) { const f = FILES.indexOf(sq[0]), r = +sq[1]; return this.meW() ? [f + 0.5, 8 - r + 0.5] : [7 - f + 0.5, r - 1 + 0.5]; }
