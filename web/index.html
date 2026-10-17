@@ -69,10 +69,6 @@
         <svg class="icon moon" aria-hidden="true"><use href="#i-moon"/></svg>
         <svg class="icon sun" aria-hidden="true"><use href="#i-sun"/></svg>
       </button>
-      <div class="status-chip" aria-live="polite">
-        <span class="mark" id="led" data-state="idle"></span>
-        <span class="label" id="led-label">Standby</span>
-      </div>
     </div>
   </header>
 
@@ -142,16 +138,31 @@
               <label class="toggle"><input type="checkbox" name="tc" value="daily"><span><i class="tick" aria-hidden="true"></i>Daily</span></label>
             </fieldset>
             <button class="btn primary" type="submit" id="btn-scan"><span id="scan-label">Scan games</span><svg class="icon"><use href="#i-next"/></svg></button>
-            <p class="resume label" id="resume" hidden></p>
+            <p class="resume label" id="resume" aria-live="polite">
+              <span id="resume-text"></span>
+              <button class="link-btn" type="button" id="btn-reset">Reset</button>
+              <span class="confirm" id="reset-confirm" hidden>Clear it?
+                <button class="link-btn" type="button" id="btn-reset-yes">Clear</button>
+                <button class="link-btn" type="button" id="btn-reset-no">Keep</button>
+              </span>
+            </p>
           </div>
         </div>
         <p class="error" id="error" role="alert" hidden></p>
       </form>
 
       <ol class="how" aria-label="How it works">
-        <li><h2>Fetch</h2><span class="label">Finished games only</span></li>
-        <li><h2>Scan</h2><span class="label">With Stockfish</span></li>
-        <li><h2>Drill</h2><span class="label">Find the punishment</span></li>
+        <li tabindex="0"><h2>Fetch</h2><span class="label">Finished games only</span>
+          <div class="peek" aria-hidden="true"><ul class="peek-games">
+            <li><b class="w">W</b>vs pawnstorm<span>1–0</span></li>
+            <li><b class="l">L</b>vs knightowl<span>0–1</span></li>
+            <li><b class="w">W</b>vs e4enjoyer<span>1–0</span></li>
+            <li><b class="d">½</b>vs rookie_92<span>½–½</span></li>
+          </ul><p>Your finished games, newest first</p></div></li>
+        <li tabindex="0"><h2>Scan</h2><span class="label">With Stockfish</span>
+          <div class="peek" aria-hidden="true"><div class="mini scanning"><i class="mp " style="--f:4;--r:1;background-image:url(pieces/wK.svg)"></i><i class="mp " style="--f:0;--r:1;background-image:url(pieces/wR.svg)"></i><i class="mp " style="--f:1;--r:2;background-image:url(pieces/wP.svg)"></i><i class="mp " style="--f:5;--r:2;background-image:url(pieces/wP.svg)"></i><i class="mp " style="--f:6;--r:8;background-image:url(pieces/bK.svg)"></i><i class="mp " style="--f:3;--r:4;background-image:url(pieces/bN.svg)"></i><i class="flag" style="--f:3;--r:4"></i><i class="sweep"></i></div><p>Stockfish checks every move you made</p></div></li>
+        <li tabindex="0"><h2>Drill</h2><span class="label">Find the punishment</span>
+          <div class="peek" aria-hidden="true"><div class="mini"><i class="mp " style="--f:4;--r:1;background-image:url(pieces/wK.svg)"></i><i class="mp " style="--f:0;--r:1;background-image:url(pieces/wR.svg)"></i><i class="mp " style="--f:1;--r:2;background-image:url(pieces/wP.svg)"></i><i class="mp " style="--f:5;--r:2;background-image:url(pieces/wP.svg)"></i><i class="mp " style="--f:6;--r:8;background-image:url(pieces/bK.svg)"></i><i class="mp jump" style="--f:3;--r:4;background-image:url(pieces/bN.svg)"></i><svg class="mini-arrow" viewBox="0 0 8 8"><defs><marker id="mini-head" viewBox="0 0 4 4" refX="2" refY="2" markerWidth="2.2" markerHeight="2.2" orient="auto"><path d="M0 0 4 2 0 4Z"/></marker></defs><path d="M3.5 4.5 2.6 6.3" marker-end="url(#mini-head)"/></svg><i class="tick">✓</i></div><p>Find the move that punishes yours: Nc2+ forks</p></div></li>
       </ol>
 
       <div class="status" id="status" hidden aria-live="polite">
@@ -208,13 +219,14 @@
         <span class="visually-hidden" id="device-side"></span>
       </section>
 
-      <p class="foot label">
-        <span id="import-note">Runs in your browser</span>
-        <a href="https://github.com/nmrugg/stockfish.js" target="_blank" rel="noopener">Stockfish.js 19 lite, GPLv3</a>
-        <a href="https://github.com/chongmindev/cracktics" target="_blank" rel="noopener">Source</a>
-      </p>
     </section>
   </main>
+
+  <footer class="foot label">
+    <span id="import-note">Runs in your browser</span>
+    <a href="https://github.com/nmrugg/stockfish.js" target="_blank" rel="noopener">Stockfish.js 19 lite, GPLv3</a>
+    <a href="https://github.com/chongmindev/cracktics" target="_blank" rel="noopener">Source</a>
+  </footer>
 </div>
 <script type="module" src="./src/app.js"></script>
 </body>

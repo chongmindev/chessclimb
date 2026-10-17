@@ -27,11 +27,11 @@ a:hover { border-bottom-color: var(--accent); }
 .label { font: 500 0.75rem/1.4 var(--f-mono); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--ink-muted); }
 
 /* ---------- App frame: one screen on desktop ---------- */
-.app { position: relative; z-index: 1; display: grid; grid-template-rows: var(--bar) minmax(0, 1fr); min-height: 100dvh; }
+.app { position: relative; z-index: 1; display: grid; grid-template-rows: var(--bar) minmax(0, 1fr) auto; min-height: 100dvh; }
 @media (min-width: 1024px) and (min-height: 700px) { .app { height: 100dvh; } }
 
 .bar { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 0 var(--pad); border-bottom: var(--thick); }
-.wordmark { display: flex; align-items: center; gap: 8px; color: var(--ink); border-bottom: 0;
+.wordmark { display: flex; align-items: center; gap: 3px; color: var(--ink); border-bottom: 0;
   font: italic 700 1.375rem/1 var(--f-display); letter-spacing: var(--track-tight); }
 .wordmark:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
 /* The favicon's knight, drawn in the page's ink so it follows night mode. Hover tips the hat. */
@@ -63,8 +63,8 @@ a:hover { border-bottom-color: var(--accent); }
 /* ---------- Left: the stage (hero type, then the board) ---------- */
 .stage { position: relative; width: 100%; aspect-ratio: 1; }
 @media (min-width: 1024px) {
-  /* About 90% of the available height, so the page breathes; centered against the panel. */
-  .stage { width: auto; height: 90%; align-self: center; max-height: calc(0.9 * (100dvh - var(--bar) - 2 * var(--pad))); max-width: 52vw; }
+  /* As tall as the panel beside it (top and bottom line up), square, at most about half the width. */
+  .stage { height: auto; align-self: start; width: min(52vw, calc(100dvh - var(--bar) - var(--foot) - 2 * var(--pad))); }
 }
 .hero { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-start; padding: 0 0 8px; }
 .hero h1 { margin: 12px 0 0; font: 700 clamp(3rem, min(8vw, 11vh), 8rem)/0.92 var(--f-display); letter-spacing: var(--track-tighter); }
@@ -154,7 +154,13 @@ svg.arrows { position: absolute; inset: 0; width: 100%; height: 100%; pointer-ev
 [role="option"] .logo { margin-right: -2px; }
 [role="option"] { justify-content: flex-start; }
 [role="option"][aria-selected="true"]::after { margin-left: auto; }
-.resume { margin: -6px 0 0; text-align: center; }
+/* Progress line under the button; it keeps its height when empty so nothing below it moves */
+.resume { margin: -6px 0 0; min-height: 1.1rem; display: flex; flex-wrap: wrap; justify-content: center; gap: 0 6px; }
+.resume.empty { visibility: hidden; }
+.confirm { display: inline-flex; gap: 6px; color: var(--ink); }
+.link-btn { border: 0; padding: 0; background: none; font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--accent);
+  cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.link-btn:hover { color: var(--ink); }
 .form-row.tc { grid-template-columns: minmax(0, 1fr); gap: 14px; }
 .form-row.tc .btn.primary { width: 100%; }
 .toggles { flex-wrap: nowrap; }
@@ -284,7 +290,10 @@ svg.arrows { position: absolute; inset: 0; width: 100%; height: 100%; pointer-ev
 .vu .boxes i { display: block; width: 100%; min-height: 2px; max-height: 2rem; background: var(--paper); }
 .vu .boxes span { display: none; }
 
-.foot { margin-top: auto; display: flex; flex-wrap: wrap; gap: 4px 16px; border-top: var(--hairline); padding-top: 10px; }
+/* Footer: across both columns, lined up with them, words from the left */
+.foot { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 4px 20px; width: 100%; max-width: 1280px; margin: 0 auto;
+  padding: 0 var(--pad) 16px; }
+.foot::before { content: ""; flex: 0 0 100%; border-top: var(--hairline); margin-bottom: 8px; }
 .foot a { color: var(--ink-muted); border-bottom-color: var(--hairline-color); }
 
 /* Waiting */
@@ -304,10 +313,10 @@ body[data-view="intro"] .form { margin-top: auto; }
 
 /* How it works: three numbered columns, a word each */
 .how { list-style: none; margin: 12px 0 0; padding: 0; border-top: var(--thick); counter-reset: how; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.how li { counter-increment: how; display: flex; flex-direction: column; gap: 6px; padding: 18px 16px 18px 0; }
-.how li + li { border-left: var(--hairline); padding-left: 16px; }
-.how li::before { content: "0" counter(how); font: 400 3rem/1 var(--f-display); color: var(--accent); }
-.how .label { white-space: nowrap; }
+.how > li { position: relative; counter-increment: how; display: flex; flex-direction: column; gap: 6px; padding: 18px 16px 18px 0; }
+.how > li + li { border-left: var(--hairline); padding-left: 16px; }
+.how > li::before { content: "0" counter(how); font: 400 3rem/1 var(--f-display); color: var(--accent); }
+.how > li > .label { white-space: nowrap; }
 .how h2 { margin: 0; font: 700 1.5rem/1.1 var(--f-display); letter-spacing: var(--track-tight); }
 
 body[data-view="drill"] .form:not(.open) .form-body { display: none; }
@@ -327,9 +336,9 @@ body[data-view="drill"] .form:not(.open) .form-summary { display: flex; }
 }
 
 @media (max-width: 640px) {
-  .how li { padding-right: 10px; }
-  .how li + li { padding-left: 10px; }
-  .how .label { white-space: normal; }
+  .how > li { padding-right: 10px; }
+  .how > li + li { padding-left: 10px; }
+  .how > li > .label { white-space: normal; }
   .how h2 { font-size: 1.25rem; }
   .counters { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 12px 16px; row-gap: 10px; }
   .counter + .counter { padding-left: 12px; }
@@ -421,3 +430,57 @@ svg.arrows polygon { fill: var(--ink); }
 .theme-btn .sun { display: none; }
 :root[data-theme="dark"] .theme-btn .sun { display: block; }
 :root[data-theme="dark"] .theme-btn .moon { display: none; }
+
+/* ---------- Intro on desktop: the hero and the panel share one top and one bottom ---------- */
+@media (min-width: 1024px) {
+  body[data-view="intro"] .main { align-content: center; }
+  body[data-view="intro"] .stage { aspect-ratio: auto; height: auto; align-self: stretch; max-height: none;
+    width: min(52vw, calc(0.9 * (100dvh - var(--bar) - var(--foot) - 2 * var(--pad)))); }
+  body[data-view="intro"] .hero { position: static; height: 100%; justify-content: space-between; gap: 24px; padding: 0; }
+  body[data-view="intro"] .panel { justify-content: space-between; gap: 32px; }
+  body[data-view="intro"] .form { margin-top: 0; }
+  body[data-view="intro"] .how > li { padding-bottom: 0; }
+}
+
+/* ---------- How it works: a small preview of each step on hover or focus ---------- */
+.how > li { outline: none; cursor: default; }
+.how > li:focus-visible h2 { text-decoration: underline 3px var(--accent); text-underline-offset: 4px; }
+.peek { position: absolute; z-index: 30; bottom: calc(100% + 10px); left: 0; width: 210px; padding: 10px;
+  background: var(--paper); border: var(--medium); box-shadow: 6px 6px 0 var(--ink);
+  opacity: 0; translate: 0 6px; pointer-events: none; transition: opacity var(--t), translate var(--t); }
+.how > li:nth-child(2) .peek { left: 50%; margin-left: -105px; }
+.how > li:last-child .peek { left: auto; right: 0; }
+.how > li:hover .peek, .how > li:focus .peek { opacity: 1; translate: 0 0; }
+.peek p { margin: 8px 0 0; font: 500 0.6875rem/1.4 var(--f-mono); letter-spacing: var(--track-label); text-transform: uppercase; color: var(--ink-muted); }
+/* Not animated until shown, so the loops start from the beginning each time. */
+.how > li:not(:hover):not(:focus) .peek * { animation-play-state: paused !important; animation-name: none !important; }
+
+.peek-games { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.peek-games li { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border: var(--hairline); font: 500 0.75rem var(--f-mono);
+  animation: peek-row 3s ease-out infinite both; }
+.peek-games li:nth-child(2) { animation-delay: 0.2s; } .peek-games li:nth-child(3) { animation-delay: 0.4s; } .peek-games li:nth-child(4) { animation-delay: 0.6s; }
+.peek-games b { display: grid; place-items: center; width: 16px; height: 16px; font-size: 0.625rem; background: var(--ink); color: var(--paper); }
+.peek-games b.l { background: transparent; color: var(--ink); border: 1px solid var(--ink); }
+.peek-games b.d { background: var(--accent-mid); color: var(--ink); }
+.peek-games span { margin-left: auto; color: var(--ink-muted); }
+@keyframes peek-row { 0% { opacity: 0; translate: 0 -6px; } 12%, 100% { opacity: 1; translate: 0 0; } }
+
+.mini { position: relative; width: 100%; aspect-ratio: 1; overflow: hidden; border: var(--thin);
+  background: repeating-conic-gradient(var(--sq-dark) 0 25%, var(--sq-light) 0 50%) 0 0 / 25% 25%; }
+.mp, .flag { position: absolute; width: 12.5%; height: 12.5%; left: calc(var(--f) * 12.5%); top: calc((8 - var(--r)) * 12.5%); }
+.mp { background: center / 88% no-repeat; }
+.flag { background: linear-gradient(135deg, var(--board-mark) 0 26%, transparent 26%); box-shadow: inset 0 0 0 2px var(--board-mark);
+  animation: peek-flag 2.6s steps(1) infinite; }
+.sweep { position: absolute; left: 0; right: 0; top: 100%; height: 12.5%; border-bottom: 2px solid var(--accent);
+  background: linear-gradient(transparent, color-mix(in srgb, var(--accent) 40%, transparent)); animation: peek-sweep 2.6s linear infinite; }
+@keyframes peek-sweep { from { top: -12.5%; } 70%, to { top: 100%; } }
+@keyframes peek-flag { 0% { opacity: 0; } 42% { opacity: 1; } }
+.mp.jump { animation: peek-jump 3.2s ease-in-out infinite; }
+@keyframes peek-jump { 0%, 40% { translate: 0 0; } 55%, 100% { translate: -100% 200%; } }
+.mini-arrow { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mini-arrow path { fill: none; stroke: var(--accent); stroke-width: 0.22; stroke-linecap: round; stroke-dasharray: 3; animation: peek-draw 3.2s ease-out infinite; }
+.mini-arrow marker path { fill: var(--accent); stroke: none; animation: none; }
+@keyframes peek-draw { 0% { stroke-dashoffset: 3; opacity: 1; } 35% { stroke-dashoffset: 0; } 50% { opacity: 1; } 60%, 100% { opacity: 0; } }
+.mini .tick { position: absolute; top: 6px; left: 6px; display: grid; place-items: center; width: 26px; height: 26px; font: 700 1rem/1 var(--f-mono); font-style: normal;
+  background: var(--ok-bg); color: var(--ok-fg); animation: peek-tick 3.2s steps(1) infinite; }
+@keyframes peek-tick { 0% { opacity: 0; } 58% { opacity: 1; } }

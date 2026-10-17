@@ -20,12 +20,9 @@ const SITE_NAME = { chesscom: "Chess.com", lichess: "Lichess" };
 const playerKey = (site, username) => (site === "lichess" ? "lichess:" : "") + username.toLowerCase();
 const siteNow = () => $("site").value || "chesscom";
 
-/** The nameplate LED and the status readout LED follow the scan: idle, fetching, scanning, ready, error. */
-const LED_LABEL = { idle: "Standby", fetching: "Fetching games", scanning: "Scanning", ready: "Ready", error: "Fault" };
+/** The status readout's mark follows the scan: idle, fetching, scanning, ready, error. */
 function setState(state) {
-  $("led").dataset.state = state;
   $("status-led").dataset.state = state;
-  $("led-label").textContent = LED_LABEL[state];
 }
 
 function workerTransport(url) {
@@ -149,6 +146,7 @@ async function start(store, trainer, site, username, rangeValue, timeClasses) {
   // Explanations want the engine's whole line, which the cache doesn't keep: a fresh search, one position.
   trainer.analyse = (fen) => pool.analyse(fen, cfg.drills.depth, 1, true);
   const key = `progress|${playerKey(site, username)}`;
+  trainer.key = key;
   trainer.load = () => store.get(key);
   trainer.save = (p) => store.set(key, p);
   await trainer.start();
@@ -194,9 +192,25 @@ async function main() {
     const p = u ? await store.get(`progress|${playerKey(siteNow(), u)}`) : null;
     const done = p?.stats?.done || 0;
     $("scan-label").textContent = done ? "Continue" : "Scan games";
-    $("resume").hidden = !done;
-    if (done) $("resume").textContent = `${done} answered · ${Math.round((100 * p.stats.ok) / done)}% correct · picks up where you left off`;
+    $("resume").classList.toggle("empty", !done);   // keeps its line either way, so nothing below moves
+    $("reset-confirm").hidden = true;
+    $("btn-reset").hidden = !done;
+    $("resume-text").textContent = done ? `${done} answered · ${Math.round((100 * p.stats.ok) / done)}% correct ·` : "";
   };
+  // Reset: asks once inline, then clears this player's answers and review boxes (cached games and scans stay).
+  $("btn-reset").addEventListener("click", () => {
+    $("btn-reset").hidden = true;
+    $("reset-confirm").hidden = false;
+    $("btn-reset-no").focus();
+  });
+  $("btn-reset-no").addEventListener("click", paintCta);
+  $("btn-reset-yes").addEventListener("click", async () => {
+    const key = `progress|${playerKey(siteNow(), $("username").value.trim())}`;
+    await store.set(key, null);
+    if (trainer.key === key) trainer.resetProgress();
+    await paintCta();
+    $("import-note").textContent = "Progress cleared.";
+  });
   const paintSite = () => {
     const site = siteNow();
     $("username-label").textContent = `${SITE_NAME[site]} username`;

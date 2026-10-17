@@ -49,6 +49,7 @@
 
   /* Layout: the app fits one screen on desktop */
   --bar: 56px;
+  --foot: 44px;          /* footer row: hairline and one line of labels */
   --pad: 32px;
   --gap: 48px;
   --touch: 44px;

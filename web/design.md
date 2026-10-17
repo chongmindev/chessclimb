@@ -26,7 +26,7 @@ space for the whole app to fit one screen.
 On a desktop (1024px wide and 700px tall or more) the whole app fits the window with no page scroll:
 
 ```
-+-- bar: wordmark ............................ export  import  [] status --+  4px rule
++-- bar: wordmark ................................ export  import  sound  theme --+  4px rule
 |                                 |  username ______________  from the last _  |
 |                                 |  [RAPID][blitz][bullet][daily]  [SCAN ->]  |
 |   stage: hero type,             |  [] status text ............               |
@@ -125,7 +125,10 @@ interface washes, `--sq-light` / `--sq-dark` for the board, `--board-mark` for m
 
 | Component | Class | Notes |
 |---|---|---|
-| Bar | `.bar` | 56px, wordmark left (the favicon's knight in page ink + name, a link home; hover tips the hat), links and status right, 4px rule below |
+| Bar | `.bar` | 56px, wordmark left (the favicon's knight in page ink + name, a link home; hover tips the hat), links, sound and theme right (no status chip: the scan's progress shows in the panel), 4px rule below |
+| Footer | `.foot` | full width under both columns, lined up with them, words from the left |
+| Step previews | `.how .peek` | hover or focus on Fetch / Scan / Drill shows a small looping picture of that step |
+| Layout | `.main` | desktop: left and right columns share one top and one bottom, in the intro and in the drill |
 | Site picker | `#site` + `.dropdown.compact` | small dropdown left of the username; the button shows only the site's mark (Simple Icons), the list shows mark + name |
 | Status mark | `.mark` | 10px square: hollow idle, filled ready, blinking (steps, not fades) while working |
 | Input | `.input` | 2px underline only; 4px on focus; italic serif placeholder |

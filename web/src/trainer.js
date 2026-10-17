@@ -67,7 +67,7 @@ export class Trainer {
   constructor(els, { load, save, evaluate = null, analyse = null, tolerance = 100, cue = () => {} }) {
     Object.assign(this, { els, load, save, evaluate, analyse, tolerance, cue });
     this.items = [];
-    this.progress = { boxes: {}, seen: {}, turn: 0, stats: { done: 0, ok: 0, streak: 0 } };
+    this.progress = Trainer.freshProgress();
     this.cur = null;
     this.frames = [];
     els.safe.addEventListener("click", () => this.say(null));
@@ -85,8 +85,16 @@ export class Trainer {
     });
   }
 
+  static freshProgress() { return { boxes: {}, seen: {}, turn: 0, stats: { done: 0, ok: 0, streak: 0 } }; }
+
+  /** Forget every answer and review box (the caller has already cleared the saved copy). */
+  resetProgress() {
+    this.progress = Trainer.freshProgress();
+    this.paintStats();
+  }
+
   async start() {
-    this.progress = (await this.load()) || this.progress;
+    this.progress = (await this.load()) || Trainer.freshProgress();
   }
 
   setItems(items) {
