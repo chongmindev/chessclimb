@@ -18,7 +18,7 @@ const SITE_NAME = { chesscom: "Chess.com", lichess: "Lichess" };
 
 /** Progress and scan results are kept per player and site (Chess.com keeps its original, unprefixed keys). */
 const playerKey = (site, username) => (site === "lichess" ? "lichess:" : "") + username.toLowerCase();
-const siteNow = () => document.querySelector("input[name=site]:checked")?.value || "chesscom";
+const siteNow = () => $("site").value || "chesscom";
 
 /** The nameplate LED and the status readout LED follow the scan: idle, fetching, scanning, ready, error. */
 const LED_LABEL = { idle: "Standby", fetching: "Fetching games", scanning: "Scanning", ready: "Ready", error: "Fault" };
@@ -174,7 +174,7 @@ async function start(store, trainer, site, username, rangeValue, timeClasses) {
 async function main() {
   setupTheme();
   setupSound();
-  const range = new Select($("range"));
+  const range = new Select($("range")), siteSel = new Select($("site"));
   fitHero();
   document.fonts?.ready.then(fitHero);
   new ResizeObserver(fitHero).observe(document.querySelector(".stage"));
@@ -205,13 +205,13 @@ async function main() {
     document.querySelector('input[name=tc][value=rapid]').closest("label").title = site === "lichess" ? "Rapid and classical" : "";
     paintCta();
   };
-  for (const r of document.querySelectorAll("input[name=site]")) r.addEventListener("change", paintSite);
+  $("site").addEventListener("change", paintSite);
   $("username").addEventListener("input", paintCta);
 
   const last = await store.get("last");
   if (last) {
-    const site = document.querySelector(`input[name=site][value="${last.site || "chesscom"}"]`);
-    if (site) site.checked = true;
+    $("site").value = last.site === "lichess" ? "lichess" : "chesscom";
+    siteSel.sync();
     $("username").value = last.username;
     // Older saves stored months; map them to the nearest time span.
     const saved = last.range || { 1: "d30", 2: "d90", 3: "d90", 6: "d182" }[last.months] || "g50";
@@ -244,7 +244,8 @@ async function main() {
       const data = JSON.parse(await file.text());
       const site = data.site === "lichess" ? "lichess" : "chesscom";
       await store.set(`progress|${playerKey(site, data.username)}`, data.progress);
-      document.querySelector(`input[name=site][value="${site}"]`).checked = true;
+      $("site").value = site;
+      siteSel.sync();
       $("username").value = data.username;
       paintSite();
       $("import-note").textContent = `Progress for ${data.username} imported. Press Continue.`;

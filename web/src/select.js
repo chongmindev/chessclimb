@@ -1,12 +1,24 @@
 // A custom dropdown drawn over a hidden native <select>, which stays the source of truth: options are read
 // from it, and choosing one sets its value and fires "change". So code that reads the <select> keeps working.
 // ARIA: a button (aria-haspopup="listbox") that opens a listbox of options; keyboard as in a native select.
+// <option data-icon="i-name"> puts that sprite symbol before the option's text; <select data-compact> shows only
+// the chosen option's icon on the button (its text stays there for screen readers).
+
+const SVG = "http://www.w3.org/2000/svg";
+function icon(id) {
+  const svg = document.createElementNS(SVG, "svg"), use = document.createElementNS(SVG, "use");
+  svg.setAttribute("class", "logo");
+  svg.setAttribute("aria-hidden", "true");
+  use.setAttribute("href", `#${id}`);
+  svg.append(use);
+  return svg;
+}
 
 export class Select {
   constructor(select) {
     this.select = select;
     this.root = document.createElement("div");
-    this.root.className = "dropdown";
+    this.root.className = "dropdown" + ("compact" in select.dataset ? " compact" : "");
     this.button = document.createElement("button");
     this.button.type = "button";
     this.button.className = "dropdown-button input";
@@ -62,6 +74,7 @@ export class Select {
         li.id = `${this.select.id}-opt-${o.value}`;
         li.dataset.value = o.value;
         li.textContent = o.textContent;
+        if (o.dataset.icon) li.prepend(icon(o.dataset.icon));
         this.list.append(li);
       }
     }
@@ -72,7 +85,12 @@ export class Select {
 
   sync() {
     const v = this.select.value;
-    this.value.textContent = this.select.selectedOptions[0]?.textContent ?? "";
+    const o = this.select.selectedOptions[0];
+    this.value.textContent = o?.textContent ?? "";
+    if (o?.dataset.icon) {
+      this.value.prepend(icon(o.dataset.icon));
+      if (this.root.classList.contains("compact")) this.button.title = o.textContent;
+    }
     for (const li of this.options()) li.setAttribute("aria-selected", String(li.dataset.value === v));
   }
 
@@ -124,7 +142,7 @@ export class Select {
       default:
         if (e.key.length === 1) {   // type to jump to the next option starting with that character
           const k = e.key.toLowerCase();
-          const next = [...opts.slice(i + 1), ...opts.slice(0, i + 1)].find((o) => o.textContent.toLowerCase().startsWith(k));
+          const next = [...opts.slice(i + 1), ...opts.slice(0, i + 1)].find((o) => o.textContent.trim().toLowerCase().startsWith(k));
           if (next) go(opts.indexOf(next));
         }
     }

@@ -31,10 +31,21 @@ a:hover { border-bottom-color: var(--accent); }
 @media (min-width: 1024px) and (min-height: 700px) { .app { height: 100dvh; } }
 
 .bar { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 0 var(--pad); border-bottom: var(--thick); }
-.wordmark { font: italic 700 1.375rem/1 var(--f-display); letter-spacing: var(--track-tight); }
+.wordmark { display: flex; align-items: center; gap: 8px; color: var(--ink); border-bottom: 0;
+  font: italic 700 1.375rem/1 var(--f-display); letter-spacing: var(--track-tight); }
+.wordmark:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+/* The favicon's knight, drawn in the page's ink so it follows night mode. Hover tips the hat. */
+.brand { width: 30px; height: 30px; flex: none; margin-top: -4px; }
+.brand .ink { fill: var(--ink); } .brand .gap { fill: var(--paper); } .brand .accent { fill: var(--accent); }
+.brand .ring { fill: none; stroke: var(--accent); }
+.brand .hat { transition: transform var(--t); transform-box: view-box; transform-origin: 14px 10px; }
+.wordmark:hover .brand .hat { transform: translateY(-1.5px) rotate(-10deg); }
+.wordmark:hover span { color: var(--accent); }
 .bar-right { display: flex; align-items: center; gap: 24px; }
 .bar-links { display: flex; gap: 20px; }
 @media (max-width: 640px) { .bar-links { display: none; } }
+@media (max-width: 420px) { .bar, .bar-right { gap: 12px; } .status-chip { gap: 6px; } }
+@media (max-width: 370px) { .status-chip .label { display: none; } }
 
 /* Status mark: a small square. Hollow = idle, filled = ready, blinking = working. */
 .mark { display: inline-block; width: 10px; height: 10px; border: var(--medium); flex: none; vertical-align: middle; }
@@ -55,7 +66,7 @@ a:hover { border-bottom-color: var(--accent); }
   /* About 90% of the available height, so the page breathes; centered against the panel. */
   .stage { width: auto; height: 90%; align-self: center; max-height: calc(0.9 * (100dvh - var(--bar) - 2 * var(--pad))); max-width: 52vw; }
 }
-.hero { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 0 0 8px; }
+.hero { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-start; padding: 0 0 8px; }
 .hero h1 { margin: 12px 0 0; font: 700 clamp(3rem, min(8vw, 11vh), 8rem)/0.92 var(--f-display); letter-spacing: var(--track-tighter); }
 /* Each line is fitted to the stage width by app.js (fitHero), so the three lines form one block and
    "before" becomes the graphic word. The clamp above is only the fallback before the fit runs. */
@@ -133,16 +144,16 @@ svg.arrows { position: absolute; inset: 0; width: 100%; height: 100%; pointer-ev
 [role="option"].active { background: var(--tint); }
 [role="option"][aria-selected="true"] { font-weight: 700; }
 [role="option"][aria-selected="true"]::after { content: ""; width: 10px; height: 10px; background: var(--accent); flex: none; }
-/* Where you play: two joined buttons, one pressed (joined reads as pick-one) */
-.site { display: grid; grid-template-columns: 1fr 1fr; margin: 0; padding: 0; border: 0; }
-.site label { cursor: pointer; }
-.site input { position: absolute; opacity: 0; pointer-events: none; }
-.site span { display: flex; align-items: center; justify-content: center; min-height: 40px; border: var(--medium);
-  font: 500 0.8125rem var(--f-mono); letter-spacing: var(--track-label); text-transform: uppercase; transition: background var(--t), color var(--t); }
-.site label + label span { border-left: 0; }
-.site label:hover span { background: var(--tint); }
-.site input:checked + span { background: var(--ink); color: var(--paper); }
-.site input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
+/* Where you play: a small dropdown left of the username that shows the site's mark; names in the list. */
+.who-row { grid-template-columns: auto minmax(0, 1fr) 150px; }
+.dropdown.compact .dropdown-button { width: auto; min-width: 72px; }
+.dropdown.compact .dropdown-button > span { display: flex; align-items: center; font-size: 0; }
+.dropdown.compact .dropdown-list { left: 0; right: auto; }
+.logo { width: 20px; height: 20px; flex: none; fill: currentColor; stroke: none; }
+.dropdown-button .logo { width: 24px; height: 24px; }
+[role="option"] .logo { margin-right: -2px; }
+[role="option"] { justify-content: flex-start; }
+[role="option"][aria-selected="true"]::after { margin-left: auto; }
 .resume { margin: -6px 0 0; text-align: center; }
 .form-row.tc { grid-template-columns: minmax(0, 1fr); gap: 14px; }
 .form-row.tc .btn.primary { width: 100%; }
@@ -311,6 +322,8 @@ body[data-view="drill"] .form:not(.open) .form-summary { display: flex; }
   body[data-view="drill"] .stage { aspect-ratio: 1; }
   .form-row { grid-template-columns: minmax(0, 1fr); }
   .form-row.tc { grid-template-columns: minmax(0, 1fr); }
+  .who-row { grid-template-columns: auto minmax(0, 1fr); }
+  .who-row > .field:last-child { grid-column: 1 / -1; }
 }
 
 @media (max-width: 640px) {

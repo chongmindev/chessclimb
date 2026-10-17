@@ -125,7 +125,8 @@ interface washes, `--sq-light` / `--sq-dark` for the board, `--board-mark` for m
 
 | Component | Class | Notes |
 |---|---|---|
-| Bar | `.bar` | 56px, wordmark left, links and status right, 4px rule below |
+| Bar | `.bar` | 56px, wordmark left (the favicon's knight in page ink + name, a link home; hover tips the hat), links and status right, 4px rule below |
+| Site picker | `#site` + `.dropdown.compact` | small dropdown left of the username; the button shows only the site's mark (Simple Icons), the list shows mark + name |
 | Status mark | `.mark` | 10px square: hollow idle, filled ready, blinking (steps, not fades) while working |
 | Input | `.input` | 2px underline only; 4px on focus; italic serif placeholder |
 | Dropdown | `.dropdown` (`src/select.js`) | custom: an underlined button like the inputs and a 2px-framed list; optgroups as mono headings; the active row gets `--tint`, the chosen one an accent square; full keyboard support; the hidden native `<select>` stays the source of truth |
